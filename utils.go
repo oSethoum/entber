@@ -3,6 +3,7 @@ package entber
 import (
 	"bytes"
 	"log"
+	"os"
 	"strings"
 	"text/template"
 
@@ -42,4 +43,11 @@ func has_prefixes(s string, px []string) bool {
 		}
 	}
 	return false
+}
+
+func writeFile(destination string, content string) {
+	err := os.WriteFile(destination, []byte(content), 0666)
+	if err != nil {
+		log.Fatalln(err)
+	}
 }
