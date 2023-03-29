@@ -11,7 +11,7 @@ export interface {{ pascal .Name }} {
     {{- if gt $ed 0 }}
     edges:{
     {{- range .Edges }}
-    {{ camel .Name }}?: {{ pascal .Type }} {{- if not .Unique}}[]{{- end}};
+        {{ camel .Name }}?: {{ pascal .Type }} {{- if not .Unique}}[]{{- end}};
     {{- end}}
     }
     {{- end}}

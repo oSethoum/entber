@@ -1,0 +1,28 @@
+//go:build ignore
+
+package main
+
+import (
+	"log"
+
+	"entgo.io/ent/entc"
+	"entgo.io/ent/entc/gen"
+	"github.com/oSethoum/entber"
+)
+
+func main() {
+	ex := entber.NewExtension(
+		entber.WithDB(nil),
+		entber.WithFiber(nil),
+		entber.WithTS(nil),
+	)
+	options := []entc.Option{
+		entc.Extensions(ex),
+	}
+	config := &gen.Config{}
+	err := entc.Generate("../schema", config, options...)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
