@@ -8,18 +8,22 @@ import (
 
 func (e *extension) generate(next gen.Generator) gen.Generator {
 	return gen.GenerateFunc(func(g *gen.Graph) error {
+		e.data.Graph = g
+
+		s := parseTemplate("ent/input", e.data)
+		writeFile("ent/entber_input.go", s)
+
+		s = parseTemplate("ent/query", e.data)
+		writeFile("ent/entber_query.go", s)
 
 		if e.data.FiberConfig != nil {
-			s := parseTemplate("fiber/routes", e.data)
-			writeFile(path.Join(e.data.FiberConfig.RoutesPath, "routes.go"), s)
+			s = parseTemplate("fiber/routes", e.data)
+			writeFile(path.Join(e.data.FiberConfig.RoutesPath, "entber_routes.go"), s)
 
 			for _, schema := range g.Schemas {
-				data := data{
-					Graph:         g,
-					CurrentSchema: schema,
-				}
-				s := parseTemplate("fiber/handler", data)
-				writeFile(path.Join(e.data.FiberConfig.HandlersPath, schema.Name+".go"), s)
+				e.data.CurrentSchema = schema
+				s := parseTemplate("fiber/handler", e.data)
+				writeFile(path.Join(e.data.FiberConfig.HandlersPath, snake(schema.Name)+".go"), s)
 			}
 		}
 
@@ -30,9 +34,9 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 
 		if e.data.TSConfig != nil {
 			s := parseTemplate("ts/api", e.data)
-			writeFile(path.Join("", "db.go"), s)
+			writeFile(path.Join("ts/", "api.ts"), s)
 			s = parseTemplate("ts/types", e.data)
-			writeFile(path.Join("", "db.go"), s)
+			writeFile(path.Join("ts/", "types.ts"), s)
 		}
 
 		return next.Generate(g)

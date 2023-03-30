@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"log"
 	"os"
+	"path"
 	"strings"
 	"text/template"
 
@@ -46,8 +47,32 @@ func has_prefixes(s string, px []string) bool {
 }
 
 func writeFile(destination string, content string) {
-	err := os.WriteFile(destination, []byte(content), 0666)
+	destination = path.Join(get_gomod_dir(), destination)
+	os.MkdirAll(path.Dir(destination), 0777)
+	err := os.WriteFile(destination, []byte(content), 07777)
 	if err != nil {
 		log.Fatalln(err)
 	}
+}
+
+func catch(err error) {
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func get_gomod_dir() string {
+	current, err := os.Getwd()
+	catch(err)
+
+again:
+	_, err = os.Stat(path.Join(current, "go.mod"))
+	if err != nil {
+		current = path.Join(current, "../")
+		if current == "/" {
+			log.Fatalln("go.mod not found")
+		}
+		goto again
+	}
+	return current
 }

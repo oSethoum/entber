@@ -28,10 +28,10 @@ func writeTemplae(name string, p string) {
 	out := new(bytes.Buffer)
 	err = t.Execute(out, nil)
 	catch(err)
-	p = "ent/generate/" + p
-	err = os.MkdirAll(path.Dir(p), 06666)
+	p = path.Join("ent/generate/", p)
+	err = os.MkdirAll(path.Dir(p), 0777)
 	catch(err)
-	err = os.WriteFile("ent/generate/"+p, out.Bytes(), fs.ModePerm)
+	err = os.WriteFile(p, out.Bytes(), fs.ModePerm)
 	catch(err)
 }
 

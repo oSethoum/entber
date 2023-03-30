@@ -1,1 +1,35 @@
 package handlers
+
+import "github.com/gofiber/fiber/v2"
+
+func Find{{ .CurrentSchema.Name }}(c *fiber.Ctx) error {
+	return nil
+}
+
+func Find{{ plural .CurrentSchema.Name }}(c *fiber.Ctx) error {
+	return nil
+}
+
+func Create{{ .CurrentSchema.Name }}(c *fiber.Ctx) error {
+	return nil
+}
+
+func Create{{ plural .CurrentSchema.Name }}(c *fiber.Ctx) error {
+	return nil
+}
+
+func Update{{ .CurrentSchema.Name }}(c *fiber.Ctx) error {
+	return nil
+}
+
+func Update{{ plural .CurrentSchema.Name }}(c *fiber.Ctx) error {
+	return nil
+}
+
+func Delete{{ .CurrentSchema.Name }}(c *fiber.Ctx) error {
+	return nil
+}
+
+func Delete{{ plural .CurrentSchema.Name }}(c *fiber.Ctx) error {
+	return nil
+}

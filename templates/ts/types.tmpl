@@ -77,7 +77,7 @@ export interface {{ pascal .Name }}WhereInput {
             {{ camel .Name }}EQ?:  {{ get_type .Info }};
             {{ camel .Name }}NEQ?: {{ get_type .Info }}; 
         {{- end }}
-        {{- if comparable . }}
+        {{- if is_comparable . }}
             {{ camel .Name }}?: {{ get_type .Info }};
             {{ camel .Name }}NEQ?: {{ get_type .Info }} 
             {{ camel .Name }}In?: {{ get_type .Info }}[];

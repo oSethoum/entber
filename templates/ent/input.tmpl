@@ -2,7 +2,7 @@ package ent
 
 {{ $g := .}}
 
-{{ $imps := imports . true }}
+{{ $imps := imports .Graph true }}
 {{ $imps_len := len $imps }}
 
 {{- if gt $imps_len 0 }}

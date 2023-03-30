@@ -2,9 +2,10 @@ package db
 
 import (
     "log"
-    "{{ .Package }}/ent"
-    "{{ .Package }}/ent/migrate"
-}
+    "{{ .Package }}"
+    "{{ .Package }}/migrate"
+    "context"
+)
 
 var Client *ent.Client
 
@@ -13,7 +14,13 @@ func Init() {
     if err != nil {
         log.Fatalln(err)
     }
-    err = client.Schema.Create(context.Background(), migrate.WithDropColimn(true), migrate.WithFropIndex(true))
+    
+    err = client.Schema.Create(
+		context.Background(),
+		migrate.WithDropColumn(true),
+		migrate.WithDropIndex(true),
+	)
+
     if err != nil {
         log.Fatalln(err)
     }
