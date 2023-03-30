@@ -16,6 +16,9 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 		s = parseTemplate("ent/query", e.data)
 		writeFile("ent/query.go", s)
 
+		s = parseTemplate("ent/errors", e.data)
+		writeFile("ent/errors.go", s)
+
 		if e.data.FiberConfig != nil {
 			s = parseTemplate("fiber/routes", e.data)
 			writeFile(path.Join(e.data.FiberConfig.RoutesPath, "routes.go"), s)

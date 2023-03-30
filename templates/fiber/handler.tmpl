@@ -15,10 +15,11 @@ import (
 
 func Find{{ $pName }}(c *fiber.Ctx) error {
 	id := c.Params(":id")
-	{{ $cName }}, err := db.Client.{{ $pName }}.Get(c.Context(), id)
+	{{ $cName }}, err := db.Client.{{ $pName }}.Get(c.UserContext(), id)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"code":   fiber.StatusNotFound,
+		code := fiber.StatusNotFound
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":  err.Error(),
 		})
@@ -37,17 +38,19 @@ func Find{{ $pNames }}(c *fiber.Ctx) error {
 	if q != "" {
 		err := json.Unmarshal([]byte(q), query)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"code":   fiber.StatusBadRequest,
+			code := fiber.StatusBadRequest
+			return c.Status(code).JSON(fiber.Map{
+				"code":   code,
 				"status": "error",
 				"error":  err.Error(),
 			})
 		}
 	}
-	{{ $cNames }}, err := db.Client.{{ $pName }}.Query().SetInput(query).All(c.Context())
+	{{ $cNames }}, err := db.Client.{{ $pName }}.Query().SetInput(query).All(c.UserContext())
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":  err.Error(),
 		})
@@ -64,16 +67,18 @@ func Create{{ $pName }}(c *fiber.Ctx) error {
 	body := new(ent.{{ $pName }}CreateInput)
 	err := c.BodyParser(body)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":  err.Error(),
 		})
 	}
-	{{ $cName }}, err := db.Client.{{ $pName }}.Create().SetInput(body).Save(c.Context())
+	{{ $cName }}, err := db.Client.{{ $pName }}.Create().SetInput(body).Save(c.UserContext())
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":  err.Error(),
 		})
@@ -110,10 +115,11 @@ func Create{{ $pNames }}(c *fiber.Ctx) error {
 		builders = append(builders, db.Client.{{ $pName }}.Create().SetInput(b))
 	}
 
-	err = db.Client.{{ $pName }}.CreateBulk(builders...).OnConflict().Ignore().Exec(c.Context())
+	err = db.Client.{{ $pName }}.CreateBulk(builders...).OnConflict().Ignore().Exec(c.UserContext())
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":   err.Error(),
 		})
@@ -130,16 +136,18 @@ func Update{{ $pName }}(c *fiber.Ctx) error {
 	body := new(ent.{{ $pName }}UpdateInput)
 	err := c.BodyParser(body)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"data":   err.Error(),
 		})
 	}
-	{{ $cName }}, err := db.Client.{{ $pName }}.UpdateOneID(id).SetInput(body).Save(c.Context())
+	{{ $cName }}, err := db.Client.{{ $pName }}.UpdateOneID(id).SetInput(body).Save(c.UserContext())
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":   err.Error(),
 		})
@@ -158,18 +166,20 @@ func Update{{ $pNames }}(c *fiber.Ctx) error {
 	if w != "" {
 		err := json.Unmarshal([]byte(w), where)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"code":   fiber.StatusBadRequest,
+			code := fiber.StatusBadRequest
+			return c.Status(code).JSON(fiber.Map{
+				"code":   code,
 				"status": "error",
 				"error":  err.Error(),
 			})
-		}	
+		}
 	}
 
 	predicate, err := where.P()
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":  err.Error(),
 		})
@@ -178,17 +188,19 @@ func Update{{ $pNames }}(c *fiber.Ctx) error {
 	body := new(ent.{{ $pName }}UpdateInput)
 	err = c.BodyParser(body)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":  err.Error(),
 		})
 	}
 
-	_, err = db.Client.{{ $pName }}.Update().Where(predicate).SetInput(body).Save(c.Context())
+	_, err = db.Client.{{ $pName }}.Update().Where(predicate).SetInput(body).Save(c.UserContext())
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":  err.Error(),
 		})
@@ -202,10 +214,11 @@ func Update{{ $pNames }}(c *fiber.Ctx) error {
 
 func Delete{{ $pName }}(c *fiber.Ctx) error {
 	id := c.Params(":id")
-	err := db.Client.{{ $pName }}.DeleteOneID(id).Exec(c.Context())
+	err := db.Client.{{ $pName }}.DeleteOneID(id).Exec(c.UserContext())
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":  err.Error(),
 		})
@@ -224,8 +237,9 @@ func Delete{{ $pNames }}(c *fiber.Ctx) error {
 	if w != "" {
 		err := json.Unmarshal([]byte(w), where)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"code":   fiber.StatusBadRequest,
+			code := fiber.StatusBadRequest
+			return c.Status(code).JSON(fiber.Map{
+				"code":   code,
 				"status": "error",
 				"error":  err.Error(),
 			})
@@ -234,17 +248,19 @@ func Delete{{ $pNames }}(c *fiber.Ctx) error {
 
 	predicate, err := where.P()
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":  err.Error(),
 		})
 	}
 
-	_, err = db.Client.{{ $pName }}.Delete().Where(predicate).Exec(c.Context())
+	_, err = db.Client.{{ $pName }}.Delete().Where(predicate).Exec(c.UserContext())
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
+		code := fiber.StatusBadRequest
+		return c.Status(code).JSON(fiber.Map{
+			"code":   code,
 			"status": "error",
 			"error":  err.Error(),
 		})
