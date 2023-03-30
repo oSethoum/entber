@@ -11,14 +11,14 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 		e.data.Graph = g
 
 		s := parseTemplate("ent/input", e.data)
-		writeFile("ent/entber_input.go", s)
+		writeFile("ent/input.go", s)
 
 		s = parseTemplate("ent/query", e.data)
-		writeFile("ent/entber_query.go", s)
+		writeFile("ent/query.go", s)
 
 		if e.data.FiberConfig != nil {
 			s = parseTemplate("fiber/routes", e.data)
-			writeFile(path.Join(e.data.FiberConfig.RoutesPath, "entber_routes.go"), s)
+			writeFile(path.Join(e.data.FiberConfig.RoutesPath, "routes.go"), s)
 
 			for _, schema := range g.Schemas {
 				e.data.CurrentSchema = schema

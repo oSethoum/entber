@@ -15,7 +15,7 @@ type extension struct {
 type Driver = string
 
 const (
-	SQLite     Driver = "sqlite"
+	SQLite     Driver = "sqlite3"
 	MySQL      Driver = "mysql"
 	PostgreSQL Driver = "postgres"
 )
