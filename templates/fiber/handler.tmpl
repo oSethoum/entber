@@ -14,7 +14,7 @@ import (
 {{- $cNames := camel .CurrentSchema.Name | plural }}
 
 func Find{{ $pName }}(c *fiber.Ctx) error {
-	id := c.Params(":id")
+	id := c.Params("id")
 	{{ $cName }}, err := db.Client.{{ $pName }}.Get(c.UserContext(), id)
 	if err != nil {
 		code := fiber.StatusNotFound
@@ -132,7 +132,7 @@ func Create{{ $pNames }}(c *fiber.Ctx) error {
 }
 
 func Update{{ $pName }}(c *fiber.Ctx) error {
-	id := c.Params(":id")
+	id := c.Params("id")
 	body := new(ent.{{ $pName }}UpdateInput)
 	err := c.BodyParser(body)
 	if err != nil {
@@ -213,7 +213,7 @@ func Update{{ $pNames }}(c *fiber.Ctx) error {
 }
 
 func Delete{{ $pName }}(c *fiber.Ctx) error {
-	id := c.Params(":id")
+	id := c.Params("id")
 	err := db.Client.{{ $pName }}.DeleteOneID(id).Exec(c.UserContext())
 	if err != nil {
 		code := fiber.StatusBadRequest

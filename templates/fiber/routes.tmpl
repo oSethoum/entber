@@ -10,8 +10,7 @@ func routes(r fiber.Router) {
     {{- range .Schemas }}
     {{- $r := plural .Name | camel  }}
     {{- $pn := pascal .Name}}
-    {{- $ppn := pascal .Name | plural -}}
-    
+    {{- $ppn := pascal .Name | plural }}
     {{ $r }} := r.Group("/{{ $r }}")
     {{ $r }}.Get("/:id", handlers.Find{{ $pn }})
     {{ $r }}.Get("/", handlers.Find{{ $ppn }})
@@ -21,5 +20,5 @@ func routes(r fiber.Router) {
     {{ $r }}.Patch("/", handlers.Update{{ $ppn }})
     {{ $r }}.Delete("/:id", handlers.Delete{{ $pn }})
     {{ $r }}.Delete("/", handlers.Delete{{ $ppn }})
-    {{ end }}
+    {{ end -}}
 }
