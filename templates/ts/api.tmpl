@@ -3,7 +3,7 @@ import { API, ID } from "./types.ts";
 type Response<T> = {
   code: number;
   status: "success" | "error";
-  error: string;
+  error?: string;
   data?: T;
 };
 
