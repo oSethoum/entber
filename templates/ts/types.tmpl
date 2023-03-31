@@ -113,3 +113,16 @@ export interface {{ pascal .Name }}WhereInput {
 
 {{- end }}
 
+// api related types
+export type ID = string;
+export type API = {
+    {{ range .Schemas}}
+        {{ plural .Name | camel }}: {
+            createInput: {{ pascal .Name }}CreateInput;
+            updateInput: {{ pascal .Name }}UpdateInput;
+            queryInput: {{ pascal .Name }}QueryInput;
+            whereInput: {{ pascal .Name }}WhereInput;
+            entity: {{ pascal .Name }}
+        };
+    {{ end }}
+};
