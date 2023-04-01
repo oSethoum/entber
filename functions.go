@@ -12,6 +12,7 @@ import (
 
 var (
 	snake      = gen.Funcs["snake"].(func(string) string)
+	plural     = gen.Funcs["plural"].(func(string) string)
 	buggyCamel = gen.Funcs["camel"].(func(string) string)
 	camel      = func(s string) string { return buggyCamel(snake(s)) }
 )

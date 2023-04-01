@@ -26,7 +26,7 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 			for _, schema := range g.Schemas {
 				e.data.CurrentSchema = schema
 				s := parseTemplate("fiber/handler", e.data)
-				writeFile(path.Join(e.data.FiberConfig.HandlersPath, snake(schema.Name)+".go"), s)
+				writeFile(path.Join(e.data.FiberConfig.HandlersPath, snake(plural(schema.Name))+".go"), s)
 			}
 		}
 

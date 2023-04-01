@@ -115,7 +115,7 @@ func Create{{ $pNames }}(c *fiber.Ctx) error {
 		builders = append(builders, db.Client.{{ $pName }}.Create().SetInput(b))
 	}
 
-	err = db.Client.{{ $pName }}.CreateBulk(builders...).OnConflict().Ignore().Exec(c.UserContext())
+	{{ $cNames }} ,err := db.Client.{{ $pName }}.CreateBulk(builders...).Save(c.UserContext())
 	if err != nil {
 		code := fiber.StatusBadRequest
 		return c.Status(code).JSON(fiber.Map{
@@ -128,6 +128,7 @@ func Create{{ $pNames }}(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"code":   fiber.StatusCreated,
 		"status": "success",
+		"data": {{ $cNames }},
 	})
 }
 
