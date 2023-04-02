@@ -1,10 +1,9 @@
 package generate
 
 import (
-    _ "entgo.io/ent/entc"
-	_ "entgo.io/ent/entc/gen"
+	_ "entgo.io/ent/entc"
 	_ "github.com/oSethoum/entber"
 )
 
 //go:generate go run entc.go
-//go generate go fmt ../...
+//go:generate gofmt -w -s -l ../..
