@@ -24,9 +24,10 @@ type option = func(*extension)
 
 type data struct {
 	*gen.Graph
-	DBConfig      *DBConfig
-	TSConfig      *TSConfig
-	FiberConfig   *FiberConfig
+	DBConfig    *DBConfig
+	TSConfig    *TSConfig
+	FiberConfig *FiberConfig
+
 	CurrentSchema *load.Schema
 }
 
@@ -36,9 +37,13 @@ type DBConfig struct {
 	Dsn    string
 }
 
+type AuthConfig struct {
+	Token bool
+}
+
 type TSConfig struct {
-	TypesPath string
-	ApiPath   string
+	ApiPath string
+	Runtime string
 }
 
 type FiberConfig struct {
@@ -46,7 +51,9 @@ type FiberConfig struct {
 	RoutesPath   string
 }
 
-type comparable interface{ ~string | ~int | ~float32 }
+type comparable interface {
+	~string | ~int | ~float32 | ~uint
+}
 
 var gots = map[string]string{
 	"time.Time": "string",
@@ -58,4 +65,9 @@ var gots = map[string]string{
 	"any":       "any",
 	"other":     "any",
 	"json":      "any",
+}
+
+type skipAnnotation struct {
+	name  string
+	Skips []uint
 }

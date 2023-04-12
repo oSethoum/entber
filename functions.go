@@ -34,6 +34,15 @@ func init() {
 	gen.Funcs["order_fields"] = order_fields
 	gen.Funcs["select_fields"] = select_fields
 	gen.Funcs["dir"] = path.Dir
+	gen.Funcs["skip_field_create"] = skip_field_create
+	gen.Funcs["skip_field_update"] = skip_field_update
+	gen.Funcs["skip_field_query"] = skip_field_query
+	gen.Funcs["skip_field_type"] = skip_field_type
+	gen.Funcs["skip_schema_query"] = skip_schema_query
+	gen.Funcs["skip_schema_create"] = skip_schema_create
+	gen.Funcs["skip_schema_update"] = skip_schema_update
+	gen.Funcs["skip_schema_delete"] = skip_schema_delete
+	gen.Funcs["skip_edge_query"] = skip_edge_query
 }
 
 func tag(f *load.Field) string {
@@ -50,7 +59,6 @@ func tag(f *load.Field) string {
 
 func imports(g *gen.Graph, isInput ...bool) []string {
 	imps := []string{}
-
 	for _, s := range g.Schemas {
 		for _, f := range s.Fields {
 			if len(f.Enums) > 0 && len(isInput) > 0 && isInput[0] {
@@ -176,4 +184,49 @@ func orderable(f *load.Field) bool {
 		"time.Time",
 		"bool",
 	})
+}
+
+func skip_field_create(f *load.Field) bool {
+	return (f.Default && f.Name == "id") || shouldSkip(f.Annotations, SkipFieldCreate)
+}
+
+func skip_field_update(f *load.Field) bool {
+	return f.Immutable || (f.Default && f.Name == "id") || shouldSkip(f.Annotations, SkipFieldUpdate)
+}
+
+func skip_field_query(f *load.Field) bool {
+	return shouldSkip(f.Annotations, SkipFieldQuery)
+}
+
+func skip_field_type(f *load.Field) bool {
+	return shouldSkip(f.Annotations, SkipFieldType)
+}
+
+func skip_schema_query(s *load.Schema) bool {
+	return shouldSkip(s.Annotations, SkipSchemaQuery)
+}
+
+func skip_schema_create(s *load.Schema) bool {
+	return shouldSkip(s.Annotations, SkipSchemaCreate)
+}
+
+func skip_schema_update(s *load.Schema) bool {
+	return shouldSkip(s.Annotations, SkipSchemaUpdate)
+}
+
+func skip_schema_delete(s *load.Schema) bool {
+	return shouldSkip(s.Annotations, SkipSchemaDelete)
+}
+
+func skip_edge_query(e *load.Edge) bool {
+	return shouldSkip(e.Annotations, SkipEdgeQuery)
+}
+
+func shouldSkip(annotations map[string]any, skip uint) bool {
+	a := &skipAnnotation{}
+	a.decode(annotations[skipAnootationName])
+	if in(skip, a.Skips) || in(SkipAll, a.Skips) {
+		return true
+	}
+	return false
 }

@@ -5,12 +5,14 @@ type OrderDirection = "ASC" | "DESC";
 
 export interface {{ pascal .Name }} {
     {{ range .Fields }}
+        {{- if skip_field_query . }}{{continue}}{{- end}}
         {{ get_name . }}{{- if or .Optional .Nillable }}?{{- end}}: {{ get_type .Info }};
     {{- end}}
     {{- $ed := len .Edges }}
     {{- if gt $ed 0 }}
     edges:{
     {{- range .Edges }}
+        {{- if skip_edge_query .}}{{continue}}{{- end}}
         {{ camel .Name }}?: {{ pascal .Type }} {{- if not .Unique}}[]{{- end}};
     {{- end}}
     }
@@ -19,6 +21,7 @@ export interface {{ pascal .Name }} {
 
 export interface {{ pascal .Name }}CreateInput{
     {{ range .Fields }}
+        {{- if skip_field_create .}}{{continue}}{{- end}}
         {{ get_name . }}{{- if or .Optional .Nillable .Default }}?{{- end}}: {{ get_type .Info }};
     {{- end}}
     {{- range .Edges}}
@@ -34,6 +37,7 @@ export interface {{ pascal .Name }}CreateInput{
 
 export interface {{ pascal .Name }}UpdateInput{
     {{ range .Fields }}
+        {{- if skip_field_update .}}{{continue}}{{- end}}
         {{ get_name . }}{{- if is_slice . | not }}?{{ end }}: {{ get_type .Info }};
     {{- end}}
     {{- range .Edges}}
@@ -64,6 +68,7 @@ export interface {{ pascal .Name }}QueryInput {
     where?: {{ pascal .Name }}WhereInput;
     order?: {{ pascal .Name }}Order[];
     {{- range .Edges }}
+    {{- if skip_edge_query .}}{{continue}}{{- end}}
     with{{ pascal .Name }}?: {{ pascal .Type }}QueryInput;
     {{- end }}
 }
@@ -105,7 +110,8 @@ export interface {{ pascal .Name }}WhereInput {
         {{- end }}
     {{- end }}
     {{- range .Edges}}
-    // "{{.Name}}" edge predicates.
+        {{- if skip_edge_query .}}{{continue}}{{- end}}
+        // "{{.Name}}" edge predicates.
         has{{pascal .Name}}?: boolean;		               
         has{{pascal .Name}}With?: {{pascal .Type}}WhereInput;
     {{- end}}

@@ -4,6 +4,7 @@ import (
 	"{{ dir .Package }}/db"
 	"{{ .Package }}"
 	"encoding/json"
+	"errors"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -13,262 +14,140 @@ import (
 {{- $cName := camel .CurrentSchema.Name  }}
 {{- $cNames := camel .CurrentSchema.Name | plural }}
 
-func Find{{ $pName }}(c *fiber.Ctx) error {
-	id := c.Params("id")
-	{{ $cName }}, err := db.Client.{{ $pName }}.Get(c.UserContext(), id)
+{{- if skip_schema_query .CurrentSchema | not}}
+func Read{{ $pName }}(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	{{ $cName }}, err := db.Client.{{ $pName }}.Get(ctx.UserContext(), id)
 	if err != nil {
-		code := fiber.StatusNotFound
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":  err.Error(),
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
 	}
-
-	return c.JSON(fiber.Map{
-		"code":   fiber.StatusOK,
-		"status": "success",
-		"data":   {{ $cName }},
-	})
+	return StopWithSuccess(ctx, "{{ $cNames }}:find-one", fiber.StatusOK, {{ $cName }})
 }
 
-func Find{{ $pNames }}(c *fiber.Ctx) error {
+func Read{{ $pNames }}(ctx *fiber.Ctx) error {
 	query := new(ent.{{ $pName }}QueryInput)
-	q := c.Query("query")
+	q := ctx.Query("query")
 	if q != "" {
 		err := json.Unmarshal([]byte(q), query)
 		if err != nil {
-			code := fiber.StatusBadRequest
-			return c.Status(code).JSON(fiber.Map{
-				"code":   code,
-				"status": "error",
-				"error":  err.Error(),
-			})
+			return StopWithError(ctx, fiber.StatusBadRequest, err)
 		}
 	}
-	{{ $cNames }}, err := db.Client.{{ $pName }}.Query().SetInput(query).All(c.UserContext())
+	{{ $cNames }}, err := db.Client.{{ $pName }}.Query().SetInput(query).All(ctx.UserContext())
 	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":  err.Error(),
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
 	}
-
-	return c.JSON(fiber.Map{
-		"code":   fiber.StatusOK,
-		"status": "success",
-		"data":   {{ $cNames }},
-	})
+	return StopWithSuccess(ctx, "{{ $cNames }}:find-many", fiber.StatusOK, {{ $cNames }})
 }
+{{- end}}
 
-func Create{{ $pName }}(c *fiber.Ctx) error {
+{{- if skip_schema_create .CurrentSchema | not}}
+func Create{{ $pName }}(ctx *fiber.Ctx) error {
 	body := new(ent.{{ $pName }}CreateInput)
-	err := c.BodyParser(body)
+	err := ctx.BodyParser(body)
 	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":  err.Error(),
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
 	}
-	{{ $cName }}, err := db.Client.{{ $pName }}.Create().SetInput(body).Save(c.UserContext())
+	{{ $cName }}, err := db.Client.{{ $pName }}.Create().SetInput(body).Save(ctx.UserContext())
 	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":  err.Error(),
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
 	}
-
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"code":   fiber.StatusCreated,
-		"status": "success",
-		"data":   {{ $cName }},
-	})
+	return StopWithSuccess(ctx, "{{ $cNames }}:create-one", fiber.StatusOK, {{ $cName }})
 }
 
-func Create{{ $pNames }}(c *fiber.Ctx) error {
+func Create{{ $pNames }}(ctx *fiber.Ctx) error {
 	body := []*ent.{{ $pName }}CreateInput{}
-	err := c.BodyParser(&body)
+	err := ctx.BodyParser(&body)
 	if err != nil {
-		return c.JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
-			"status": "error",
-			"error":   err.Error(),
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
 	}
-
 	if len(body) == 0 {
-		return c.JSON(fiber.Map{
-			"code":   fiber.StatusBadRequest,
-			"status": "error",
-			"error":   "empty array body",
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, errors.New("empty array body"))
 	}
-
 	builders := []*ent.{{ $pName }}Create{}
 	for _, b := range body {
 		builders = append(builders, db.Client.{{ $pName }}.Create().SetInput(b))
 	}
-
-	{{ $cNames }} ,err := db.Client.{{ $pName }}.CreateBulk(builders...).Save(c.UserContext())
+	{{ $cNames }}, err := db.Client.{{ $pName }}.CreateBulk(builders...).Save(ctx.UserContext())
 	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":   err.Error(),
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
 	}
-
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"code":   fiber.StatusCreated,
-		"status": "success",
-		"data": {{ $cNames }},
-	})
+	return StopWithSuccess(ctx, "{{ $cNames }}:create-many", fiber.StatusOK, {{ $cNames }})
 }
+{{- end}}
 
-func Update{{ $pName }}(c *fiber.Ctx) error {
-	id := c.Params("id")
+{{- if skip_schema_update .CurrentSchema | not}}
+func Update{{ $pName }}(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
 	body := new(ent.{{ $pName }}UpdateInput)
-	err := c.BodyParser(body)
+	err := ctx.BodyParser(body)
 	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"data":   err.Error(),
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
 	}
-	{{ $cName }}, err := db.Client.{{ $pName }}.UpdateOneID(id).SetInput(body).Save(c.UserContext())
+	{{ $cName }}, err := db.Client.{{ $pName }}.UpdateOneID(id).SetInput(body).Save(ctx.UserContext())
 	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":   err.Error(),
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
 	}
-
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"code":   fiber.StatusOK,
-		"status": "success",
-		"data":   {{ $cName }},
-	})
+	return StopWithSuccess(ctx, "{{ $cNames }}:update-one", fiber.StatusOK, {{ $cName }})
 }
 
-func Update{{ $pNames }}(c *fiber.Ctx) error {
-	w := c.Query("where")
+func Update{{ $pNames }}(ctx *fiber.Ctx) error {
+	w := ctx.Query("where")
 	where := new(ent.{{ $pName }}WhereInput)
+	action := db.Client.{{ $pName }}.Update()
 	if w != "" {
 		err := json.Unmarshal([]byte(w), where)
 		if err != nil {
-			code := fiber.StatusBadRequest
-			return c.Status(code).JSON(fiber.Map{
-				"code":   code,
-				"status": "error",
-				"error":  err.Error(),
-			})
+			return StopWithError(ctx, fiber.StatusBadRequest, err)
 		}
+		predicate, err := where.P()
+		if err != nil {
+			StopWithError(ctx, fiber.StatusBadRequest, err)
+		}
+		action = action.Where(predicate)
 	}
-
-	predicate, err := where.P()
-	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":  err.Error(),
-		})
-	}
-
 	body := new(ent.{{ $pName }}UpdateInput)
-	err = c.BodyParser(body)
+	err := ctx.BodyParser(body)
 	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":  err.Error(),
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
 	}
-
-	_, err = db.Client.{{ $pName }}.Update().Where(predicate).SetInput(body).Save(c.UserContext())
+	_, err = action.SetInput(body).Save(ctx.UserContext())
 	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":  err.Error(),
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
 	}
+	return StopWithSuccess(ctx, "{{ $cNames }}:update-many", fiber.StatusOK, nil)
+}
+{{- end}}
 
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"code":   fiber.StatusOK,
-		"status": "success",
-	})
+{{- if skip_schema_delete .CurrentSchema | not}}
+func Delete{{ $pName }}(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	err := db.Client.{{ $pName }}.DeleteOneID(id).Exec(ctx.UserContext())
+	if err != nil {
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
+	}
+	return StopWithSuccess(ctx, "{{ $cNames }}:delete-one", fiber.StatusOK, nil)
 }
 
-func Delete{{ $pName }}(c *fiber.Ctx) error {
-	id := c.Params("id")
-	err := db.Client.{{ $pName }}.DeleteOneID(id).Exec(c.UserContext())
-	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":  err.Error(),
-		})
-	}
-
-	return c.JSON(fiber.Map{
-		"code":   fiber.StatusOK,
-		"status": "success",
-	})
-}
-
-func Delete{{ $pNames }}(c *fiber.Ctx) error {
-	w := c.Query("where")
+func Delete{{ $pNames }}(ctx *fiber.Ctx) error {
+	w := ctx.Query("where")
 	where := new(ent.{{ $pName }}WhereInput)
-	
+	action := db.Client.{{ $pName }}.Delete()
 	if w != "" {
 		err := json.Unmarshal([]byte(w), where)
 		if err != nil {
-			code := fiber.StatusBadRequest
-			return c.Status(code).JSON(fiber.Map{
-				"code":   code,
-				"status": "error",
-				"error":  err.Error(),
-			})
-		}	
+			return StopWithError(ctx, fiber.StatusBadRequest, err)
+		}
+		predicate, err := where.P()
+		if err != nil {
+			return StopWithError(ctx, fiber.StatusBadRequest, err)
+		}
+		action = action.Where(predicate)
 	}
-
-	predicate, err := where.P()
+	_, err := action.Exec(ctx.UserContext())
 	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":  err.Error(),
-		})
+		return StopWithError(ctx, fiber.StatusBadRequest, err)
 	}
-
-	_, err = db.Client.{{ $pName }}.Delete().Where(predicate).Exec(c.UserContext())
-	if err != nil {
-		code := fiber.StatusBadRequest
-		return c.Status(code).JSON(fiber.Map{
-			"code":   code,
-			"status": "error",
-			"error":  err.Error(),
-		})
-	}
-
-	return c.JSON(fiber.Map{
-		"code":   fiber.StatusOK,
-		"status": "success",
-	})
+	return StopWithSuccess(ctx, "{{ $cNames }}:delete-many", fiber.StatusOK, nil)
 }
+{{- end}}

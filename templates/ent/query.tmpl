@@ -21,6 +21,7 @@ type OrderField struct {
 }
 
 {{- range $k, $s := .Schemas }}
+    {{- if skip_schema_query $s }}{{continue}}{{- end}}
     type {{ pascal .Name }}QueryInput struct {
         Select []string 					    `json:"select,omitempty"`
 	    Offset *int     					    `json:"offset,omitempty"`
@@ -28,8 +29,9 @@ type OrderField struct {
 	    Where  *{{ pascal .Name }}WhereInput	`json:"where,omitempty"`
 	    Order  []OrderField    				    `json:"order,omitempty"`
 	    {{- range .Edges }}
-	    With{{ pascal .Name }} *{{ pascal .Type }}QueryInput `json:"with{{ pascal .Name }},omitempty"`
-	    {{- end }}
+        {{- if skip_edge_query . }}{{continue}}{{- end}}
+        With{{ pascal .Name }} *{{ pascal .Type }}QueryInput `json:"with{{ pascal .Name }},omitempty"`
+        {{- end }}
     }
 
     type {{ pascal .Name }}WhereInput struct {
@@ -38,6 +40,7 @@ type OrderField struct {
 	    And 	[]*{{ pascal .Name }}WhereInput `json:"and"`
 
         {{- range .Fields }}
+            {{- if skip_field_query .}}{{continue}}{{- end}}
             {{- if extract_type . | eq "bool" }}
                 {{ pascal .Name }}EQ  *{{ extract_type . }}  `json:"{{ camel .Name }}EQ,omitempty"`
                 {{ pascal .Name }}NEQ *{{ extract_type . }}  `json:"{{ camel .Name }}NEQ,omitempty"`
@@ -70,7 +73,8 @@ type OrderField struct {
             {{- end }}
         {{- end }}
         {{- range .Edges}}
-        // "{{.Name}}" edge predicates.
+            {{- if skip_edge_query . }}{{continue}}{{- end}}
+            // "{{.Name}}" edge predicates.
             Has{{pascal .Name}} 		*bool		                `json:"has{{pascal .Name}},omitempty"`
             Has{{pascal .Name}}With     *{{pascal .Type}}WhereInput `json:"has{{pascal .Name}}With,omitempty"`
         {{- end -}}
@@ -127,6 +131,7 @@ type OrderField struct {
         }
 
         {{ range .Fields }}
+            {{- if skip_field_create .}}{{continue}}{{- end}}
             // "{{camel .Name}}" field predicates.
             {{- if extract_type . | eq "bool" }}
             if v := i.{{ pascal .Name }}EQ; v != nil {
@@ -199,6 +204,7 @@ type OrderField struct {
         {{ end }}
 
         {{ range .Edges }}
+        {{- if skip_edge_query . }}{{continue}}{{- end}}
         // "{{ .Name }}" edge predicates.
         if v := i.Has{{ pascal .Name }}; v != nil && *v {
 		    predicates = append(predicates, {{ lower $s.Name }}.Has{{ pascal .Name }}())
@@ -240,6 +246,7 @@ type OrderField struct {
             }
         }
         {{- range .Edges }}
+        {{- if skip_edge_query . }}{{continue}}{{- end}}
         if v := i.With{{ pascal .Name }}; v != nil {
             q.With{{ pascal .Name }}(func(nq *{{ pascal .Type }}Query){ nq.SetInput(v) })
         }

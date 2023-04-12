@@ -1,0 +1,27 @@
+package handlers
+
+import (
+	"github.com/gofiber/fiber/v2"
+)
+
+func StopWithError(ctx *fiber.Ctx, code int, err error) error {
+	response := fiber.Map{
+		"code":   code,
+		"status": "error",
+	}
+	if err != nil {
+		response["error"] = err.Error()
+	}
+	return ctx.Status(code).JSON(response)
+}
+
+func StopWithSuccess(ctx *fiber.Ctx, event string, code int, data any) error {
+	response := fiber.Map{
+		"code":   code,
+		"status": "success",
+	}
+	if data != nil {
+		response["data"] = data
+	}
+	return ctx.Status(code).JSON(response)
+}

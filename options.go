@@ -7,11 +7,9 @@ func WithDB(config *DBConfig) option {
 		if config == nil {
 			config = new(DBConfig)
 		}
-
 		if config.Path == "" {
 			config.Path = "db"
 		}
-
 		if config.Driver == "" {
 			config.Driver = SQLite
 		} else {
@@ -19,7 +17,6 @@ func WithDB(config *DBConfig) option {
 				log.Fatalln("driver", config.Driver, "is not supported")
 			}
 		}
-
 		switch config.Driver {
 		case SQLite:
 			if config.Dsn == "" {
@@ -34,7 +31,6 @@ func WithDB(config *DBConfig) option {
 				config.Dsn = "host=<host> port=<port> user=<user> dbname=<database> password=<pass>"
 			}
 		}
-
 		e.data.DBConfig = config
 	}
 }
@@ -50,7 +46,6 @@ func WithFiber(config *FiberConfig) option {
 		if config.RoutesPath == "" {
 			config.RoutesPath = "routes"
 		}
-
 		e.data.FiberConfig = config
 	}
 }
@@ -60,14 +55,18 @@ func WithTS(config *TSConfig) option {
 		if config == nil {
 			config = new(TSConfig)
 		}
-		if config.TypesPath == "" {
-			config.TypesPath = "ts/types"
-		}
-
 		if config.ApiPath == "" {
-			config.ApiPath = "ts/api"
+			config.ApiPath = "ts/"
 		}
-
+		if config.Runtime == "" {
+			config.Runtime = "deno"
+		}
 		e.data.TSConfig = config
+	}
+}
+
+func WithAuth() option {
+	return func(e *extension) {
+
 	}
 }
