@@ -222,7 +222,7 @@ type OrderField struct {
             case 1:
                 return predicates[0], nil
             default:
-                return {{camel .Name}}.And(predicates...), nil
+                return {{lower .Name}}.And(predicates...), nil
         }
     }
 

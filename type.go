@@ -20,6 +20,11 @@ const (
 	PostgreSQL Driver = "postgres"
 )
 
+const (
+	Deno = "deno"
+	Node = "node"
+)
+
 type option = func(*extension)
 
 type data struct {
@@ -47,8 +52,13 @@ type TSConfig struct {
 }
 
 type FiberConfig struct {
-	HandlersPath string
-	RoutesPath   string
+	HandlersPath     string
+	RoutesPath       string
+	MiddlewaresPath  string
+	WithUpload       bool
+	WithEvents       bool
+	WithAuth         bool
+	WithoutFiberAuth bool
 }
 
 type comparable interface {

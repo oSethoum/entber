@@ -1,0 +1,13 @@
+package config
+
+import (
+	"time"
+
+	"aidanwoods.dev/go-paseto"
+)
+
+var (
+	AccessKey    = paseto.NewV4SymmetricKey()
+	AccessSecret = []byte("ACCESS_TOKEN")
+	AccessExpire = time.Hour * 24 * 30
+)

@@ -2,6 +2,35 @@ package ent
 
 import "strings"
 
+type Error struct {
+	Type       string `json:"type"`
+	Field      string `json:"field"`
+	Constraint string `json:"constraint"`
+}
+
 func IsPrivacyError(err error) bool {
 	return strings.Contains(err.Error(), "ent/privacy")
+}
+
+func IsUniqueError(err error) bool {
+	return strings.Contains(err.Error(), "UNIQUE")
+}
+
+func IsError(err error) bool {
+	return strings.Contains(err.Error(), "ent")
+}
+
+func ParseError(err error) Error {
+	s := strings.Trim(err.Error(), " ")
+	ss := strings.Split(s, ":")
+	constract := "unique"
+	field := ""
+	if IsUniqueError(err) {
+		field = strings.Split(ss[3], ".")[1]
+	}
+	return Error{
+		Type:       "validation",
+		Constraint: constract,
+		Field:      field,
+	}
 }

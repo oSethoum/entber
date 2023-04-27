@@ -1,0 +1,94 @@
+package handlers
+
+import (
+	"{{ dir .Package}}/config"
+	"{{ dir .Package}}/db"
+	"{{ .Package }}/user"
+	"{{ .Package }}"
+	"errors"
+	"time"
+
+	"aidanwoods.dev/go-paseto"
+	"github.com/gofiber/fiber/v2"
+	"github.com/rs/xid"
+)
+
+func Login(ctx *fiber.Ctx) error {
+	body := new(struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	})
+	err := ctx.BodyParser(body)
+	if err != nil {
+		return StopWithError(ctx, err)
+	}
+	user, err := db.Client.User.Query().WithRole().Where(
+		user.Or(
+			user.Username(body.Login),
+			user.Email(body.Login),
+		),
+	).First(ctx.UserContext())
+
+	if err != nil {
+		return StopWithError(ctx, errors.New("wrong credentials"))
+	}
+
+	refreshTokenExpiration := time.Now().Add(config.RefreshExpire)
+	refreshToken := paseto.NewToken()
+	refreshToken.SetExpiration(refreshTokenExpiration)
+	refreshToken.SetString("userId", user.ID)
+	refreshToken.SetString("tokenId", xid.New().String())
+	refreshTokenString := refreshToken.V4Encrypt(config.RefreshKey, config.RefreshSecret)
+
+	accessTokenExpiration := time.Now().Add(config.AccessExpire)
+	accessToken := paseto.NewToken()
+	accessToken.SetExpiration(accessTokenExpiration)
+	accessToken.SetString("userId", user.ID)
+	accessToken.SetString("permissions", user.Edges.Role.Permissions)
+	accessTokenString := accessToken.V4Encrypt(config.AccessKey, config.AccessSecret)
+
+	ctx.Cookie(&fiber.Cookie{
+		Name:     "refreshToken",
+		Value:    refreshTokenString,
+		HTTPOnly: true,
+		Secure:   true,
+		Expires:  refreshTokenExpiration,
+	})
+
+	return ctx.JSON(fiber.Map{
+		"code": fiber.StatusOK,
+		"data": fiber.Map{
+			"user":         user,
+			"refreshToken": refreshTokenString,
+			"accessToken":  accessTokenString,
+		},
+		"status": "success",
+	})
+}
+
+func Register(ctx *fiber.Ctx) error {
+	body := new(ent.UserCreateInput)
+
+	err := ctx.BodyParser(body)
+	if err != nil {
+		return StopWithError(ctx, err)
+	}
+
+	// TODO: edit role before inserting
+	user, err := db.Client.User.Create().SetInput(body).Save(ctx.UserContext())
+	if err != nil {
+		return StopWithError(ctx, err)
+	}
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"code": fiber.StatusCreated,
+		"data": user,
+	})
+}
+
+func Logout(ctx *fiber.Ctx) error {
+	ctx.ClearCookie("refreshToken")
+	return ctx.JSON(fiber.Map{
+		"code":   fiber.StatusOK,
+		"status": "success",
+	})
+}

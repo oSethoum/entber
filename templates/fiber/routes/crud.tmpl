@@ -1,0 +1,35 @@
+package routes
+
+import (
+    "{{ dir .Package }}/handlers"
+    "github.com/gofiber/fiber/v2"
+)
+
+func crud(r fiber.Router) {
+    {{- range .Schemas }}
+    {{- $r := plural .Name | camel  }}
+    {{- $pn := pascal .Name}}
+    {{- $ppn := pascal .Name | plural }}
+    
+    {{- $r }} := r.Group("/{{ $r }}")
+        {{- if skip_schema_query . | not}}
+            {{ $r }}.Get("/:id", handlers.Read{{ $pn }}).Name("{{ $r }}:read-one")
+            {{ $r }}.Get("/", handlers.Read{{ $ppn }}).Name("{{ $r }}:read-many")
+        {{- end}}
+        
+        {{- if skip_schema_create . | not}}
+            {{ $r }}.Post("/", handlers.Create{{ $pn }}).Name("{{ $r }}:create-one")
+            {{ $r }}.Post("/bulk", handlers.Create{{ $ppn }}).Name("{{ $r }}:create-many")
+        {{- end}}
+
+        {{- if skip_schema_update . | not}}
+            {{ $r }}.Patch("/:id", handlers.Update{{ $pn }}).Name("{{ $r }}:update-one")
+            {{ $r }}.Patch("/", handlers.Update{{ $ppn }}).Name("{{ $r }}:update-many")
+        {{- end}}
+    
+        {{- if skip_schema_delete . | not}}
+            {{ $r }}.Delete("/:id", handlers.Delete{{ $pn }}).Name("{{ $r }}:delete-one")
+            {{ $r }}.Delete("/", handlers.Delete{{ $ppn }}).Name("{{ $r }}:delete-many")
+        {{- end}}
+    {{ end -}}
+}

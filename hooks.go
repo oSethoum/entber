@@ -20,11 +20,35 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 		writeFile("ent/errors.go", s)
 
 		if e.data.FiberConfig != nil {
-			s = parseTemplate("fiber/routes", e.data)
-			writeFile(path.Join(e.data.FiberConfig.RoutesPath, "routes.go"), s)
+			s = parseTemplate("fiber/config/config", e.data)
+			writeFile(path.Join("config", "config.go"), s)
 
-			s = parseTemplate("fiber/util", e.data)
+			s = parseTemplate("fiber/routes/init", e.data)
+			writeFile(path.Join(e.data.FiberConfig.RoutesPath, "init.go"), s)
+
+			s = parseTemplate("fiber/routes/crud", e.data)
+			writeFile(path.Join(e.data.FiberConfig.RoutesPath, "crud.go"), s)
+
+			s = parseTemplate("fiber/handlers/util", e.data)
 			writeFile(path.Join(e.data.FiberConfig.HandlersPath, "util.go"), s)
+
+			if e.data.FiberConfig.WithEvents {
+				s = parseTemplate("fiber/handlers/sse", e.data)
+				writeFile(path.Join(e.data.FiberConfig.HandlersPath, "sse.go"), s)
+			}
+
+			if e.data.FiberConfig.WithUpload {
+				s = parseTemplate("fiber/handlers/upload", e.data)
+				writeFile(path.Join(e.data.FiberConfig.HandlersPath, "upload.go"), s)
+			}
+
+			if !e.data.FiberConfig.WithoutFiberAuth {
+				s = parseTemplate("fiber/handlers/auth", e.data)
+				writeFile(path.Join(e.data.FiberConfig.HandlersPath, "auth.go"), s)
+
+				s = parseTemplate("fiber/middlewares/auth", e.data)
+				writeFile(path.Join(e.data.FiberConfig.MiddlewaresPath, "auth.go"), s)
+			}
 
 			for _, schema := range g.Schemas {
 				if skip_schema_query(schema) && skip_schema_create(schema) &&
@@ -32,7 +56,7 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 					continue
 				}
 				e.data.CurrentSchema = schema
-				s := parseTemplate("fiber/handler", e.data)
+				s := parseTemplate("fiber/handlers/handler", e.data)
 				writeFile(path.Join(e.data.FiberConfig.HandlersPath, snake(plural(schema.Name))+".go"), s)
 			}
 		}

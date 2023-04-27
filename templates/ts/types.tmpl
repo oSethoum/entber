@@ -43,7 +43,7 @@ export interface {{ pascal .Name }}UpdateInput{
     {{- range .Edges}}
         {{- if edge_field . | not }}
             {{- if .Unique}}
-                {{ camel .Name }}Id{{- if not .Required}}?{{- end}}: {{ get_type $g.Config.IDType }};
+                {{ camel .Name }}Id?: {{ get_type $g.Config.IDType }};
             {{- else}}
                 add{{ singular .Name | pascal }}Ids?: {{ id_type $s }}[];
                 remove{{ singular .Name | pascal }}Ids?: {{ id_type $s }}[];
@@ -115,12 +115,58 @@ export interface {{ pascal .Name }}WhereInput {
         has{{pascal .Name}}?: boolean;		               
         has{{pascal .Name}}With?: {{pascal .Type}}WhereInput;
     {{- end}}
-}   
-
+}
 {{- end }}
 
 // api related types
 export type ID = string;
+export type ResponseStatus = "success" | "error" | "warning";
+export type ResponseErrorType = "validation";
+export type ResponseErrorDetail = {
+  field: string;
+  constraint: string;
+  value: string;
+};
+export type ResponseError = {
+  type: ResponseErrorType;
+  details: ResponseErrorDetail[];
+  refresh?: boolean;
+};
+export type Response<T = undefined> = {
+  status: ResponseStatus;
+  code: number;
+  data: T;
+  error?: ResponseError;
+};
+
+{{- if .FiberConfig.WithAuth}}
+export interface ILoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+}
+export interface IRegisterResponse {
+  user: User;
+}
+
+export interface ILogin {
+  login: string;
+  password: string;
+}
+
+export type AuthAPI = {
+  login: {
+    input: ILogin;
+    response: ILoginResponse;
+  };
+
+  register: {
+    input: UserCreateInput;
+    response: IRegisterResponse;
+  };
+};
+{{- end}}
+
 export type API = {
     {{ range .Schemas}}
         {{ plural .Name | camel }}: {
@@ -132,3 +178,13 @@ export type API = {
         };
     {{ end }}
 };
+
+export type Event =
+  | "read-one"
+  | "read-many"
+  | "create-one"
+  | "create-many"
+  | "update-one"
+  | "update-many"
+  | "delete-one"
+  | "delete-many";

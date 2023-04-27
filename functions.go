@@ -18,6 +18,7 @@ var (
 )
 
 func init() {
+	gen.Funcs["camel"] = camel
 	gen.Funcs["tag"] = tag
 	gen.Funcs["imports"] = imports
 	gen.Funcs["null_field_create"] = null_field_create
@@ -53,6 +54,12 @@ func tag(f *load.Field) string {
 			name += "Id"
 		}
 		return fmt.Sprintf("json:\"%s,omitempty\"", name)
+	}
+
+	if !strings.Contains(f.Tag, "json") {
+		name := camel(f.Name)
+		f.Tag = fmt.Sprintf("json:\"%s,omitempty\" %s", name, f.Tag)
+
 	}
 	return f.Tag
 }

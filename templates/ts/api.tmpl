@@ -1,91 +1,127 @@
-import { API, ID } from "./types.ts";
+import { API, ID, AuthAPI, Response, User, Event } from "./types{{- if eq .TSConfig.Runtime "deno"}}.ts{{- end}}";
+{{- if eq .TSConfig.Runtime "deno"}}
 import { EventSource } from "https://deno.land/x/eventsource@v0.0.3/mod.ts";
-
-type Response<T> = {
-  code: number;
-  status: "success" | "error";
-  error?: string;
-  data?: T;
-};
-
-type MessageEvent<T> = {
-  event: Event;
-  data?: T;
-};
-
-export type Event =
-  | "read-one"
-  | "read-many"
-  | "create-one"
-  | "create-many"
-  | "update-one"
-  | "update-many"
-  | "delete-one"
-  | "delete-many";
+{{- end}}
 
 export class Entber {
-  readonly url: string;
-  eventSource: EventSource;
-  id?: string;
-  // deno-lint-ignore no-explicit-any
-  private callbacks: Map<string, Array<(data: any) => void>>;
+  private readonly url: string;
+  private eventSource?: EventSource;
+  private id: string;
+  private accessToken: string;
+  private callbacks?: Map<string, Array<(data: any) => void>>;
   constructor(url: string) {
+    this.id = "";
+    this.accessToken = "";
     this.url = url.replace(/\/+$/, "");
-    this.eventSource = new EventSource(this.url + "/sse");
+  }
+
+  async isLoggedIn() {
+    const response: Response<User> = await this.request("/logged-in");
+    if (response.code == 200) {
+      this.initializeEvent();
+    }
+    return response;
+  }
+
+  private initializeEvent() {
+    this.eventSource?.close();
+    this.eventSource = new EventSource(`${this.url}/listen?token=${this.getToken()}`);
     this.callbacks = new Map();
-    // deno-lint-ignore no-explicit-any
+    this.eventSource.onerror = () => {
+      this.eventSource?.close();
+      this.eventSource = new EventSource(`${this.url}/listen?token=${this.getToken()}`);
+    };
     this.eventSource.addEventListener("id", (e: any) => {
-      console.log(JSON.stringify(e, null, 1));
       this.id = e.data;
     });
-    // deno-lint-ignore no-explicit-any
+
     this.eventSource.addEventListener("message", (e: any) => {
       const message = JSON.parse(e.data);
-      console.log(message);
-
-      const callbacks = this.callbacks.get(message.event);
-      console.log(callbacks?.length);
-
+      const callbacks = this.callbacks?.get(message.event);
       callbacks?.forEach((callback) => callback(e.data));
-      console.log(this.callbacks.size);
     });
   }
 
+  private storeToken(token: string) {
+    this.accessToken = token;
+    localStorage.setItem("accessToken", token);
+  }
+
+  private getToken(): string {
+    if (this.accessToken == "") {
+      this.accessToken = localStorage.getItem("accessToken") || "";
+    }
+    return this.accessToken;
+  }
+
+  async request(url: string, init?: RequestInit): Promise<any> {
+    const method = init?.method || "GET";
+    const headers = {
+      "content-type": "application/json",
+      authorization: this.getToken(),
+    };
+    let response = await fetch(`${this.url}${url}`, {
+      method,
+      headers,
+      ...init,
+    });
+    return await response.json();
+  }
+
+  async login(input: AuthAPI["login"]["input"]): Promise<Response<AuthAPI["login"]["response"]>> {
+    const body = JSON.stringify(input);
+    const response: Response<AuthAPI["login"]["response"]> = await this.request("/login", { method: "POST", body });
+    if (response.code == 200) {
+      this.storeToken(response.data?.accessToken);
+      this.initializeEvent();
+    }
+    return response;
+  }
+
+  async register(input: AuthAPI["register"]["input"]): Promise<Response<AuthAPI["register"]["response"]>> {
+    const response = await this.request("/register", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    console.log(response);
+    return response;
+  }
+
+  async logout() {
+    const response: Response = await this.request("/logout");
+    if (response.code == 200 || response.code == 401) {
+      this.accessToken = "";
+      localStorage.removeItem("accessToken");
+    }
+    return response;
+  }
+
   async find<T extends keyof API>(resource: T, id: ID): Promise<Response<API[T]["entity"]>> {
-    const url = `${this.url}/${String(resource)}/${id}`;
-    const response = await fetch(url);
-    return response.json();
+    const url = `/${String(resource)}/${id}`;
+    return await this.request(url);
   }
 
   async query<T extends keyof API>(
     resource: T,
     query?: API[T]["queryInput"]
   ): Promise<Response<Array<API[T]["entity"]>>> {
-    const url = `${this.url}/${String(resource)}/${query ? `?query=${JSON.stringify(query)}` : ""}`;
-    const response = await fetch(url);
-    return response.json();
+    const url = `/${String(resource)}/${query ? `?query=${JSON.stringify(query)}` : ""}`;
+    return await this.request(url);
   }
 
-  async create<T extends keyof API>(
-    resource: T,
-    input: API[T]["createInput"]
-  ): Promise<Response<API[T]["entity"]>> {
-    const url = `${this.url}/${String(resource)}/`;
-    const headers = { "content-type": "application/json" };
+  async create<T extends keyof API>(resource: T, input: API[T]["createInput"]): Promise<Response<API[T]["entity"]>> {
+    const url = `/${String(resource)}/`;
     const body = JSON.stringify(input);
-    const response = await fetch(url, { method: "POST", headers, body });
-    return response.json();
+    return await this.request(url, { method: "POST", body });
   }
 
   async createBulk<T extends keyof API>(
     resource: T,
     input: API[T]["createInput"][]
   ): Promise<Response<API[T]["entity"][]>> {
-    const url = `${this.url}/${String(resource)}/bulk`;
-    const headers = { "content-type": "application/json" };
+    const url = `/${String(resource)}/bulk`;
     const body = JSON.stringify(input);
-    const response = await fetch(url, { method: "POST", headers, body });
-    return response.json();
+    return await this.request(url, { method: "POST", body });
   }
 
   async update<T extends keyof API>(
@@ -93,11 +129,9 @@ export class Entber {
     id: ID,
     input: API[T]["updateInput"]
   ): Promise<Response<API[T]["entity"]>> {
-    const url = `${this.url}/${String(resource)}/${id}`;
-    const headers = { "content-type": "application/json" };
+    const url = `/${String(resource)}/${id}`;
     const body = JSON.stringify(input);
-    const response = await fetch(url, { method: "PATCH", headers, body });
-    return response.json();
+    return await this.request(url, { method: "PATCH", body });
   }
 
   async updateMany<T extends keyof API>(
@@ -105,26 +139,19 @@ export class Entber {
     input: API[T]["updateInput"],
     where?: API[T]["whereInput"]
   ): Promise<Response<undefined>> {
-    const url = `${this.url}/${String(resource)}/${where ? `?${JSON.stringify(where)}` : ""}`;
+    const url = `/${String(resource)}/${where ? `?${JSON.stringify(where)}` : ""}`;
     const body = JSON.stringify(input);
-    const headers = { "content-type": "application/json" };
-    const response = await fetch(url, { method: "PATCH", headers, body });
-    return response.json();
+    return await this.request(url, { method: "PATCH", body });
   }
 
   async delete<T extends keyof API>(resource: T, id: ID): Promise<Response<undefined>> {
-    const url = `${this.url}/${String(resource)}/${id}`;
-    const response = await fetch(url, { method: "DELETE" });
-    return response.json();
+    const url = `/${String(resource)}/${id}`;
+    return await this.request(url, { method: "DELETE" });
   }
 
-  async deleteMany<T extends keyof API>(
-    resource: T,
-    where?: API[T]["whereInput"]
-  ): Promise<Response<undefined>> {
-    const url = `${this.url}/${String(resource)}/${where ? `?${JSON.stringify(where)}` : ""}`;
-    const response = await fetch(url, { method: "DELETE" });
-    return response.json();
+  async deleteMany<T extends keyof API>(resource: T, where?: API[T]["whereInput"]): Promise<Response<undefined>> {
+    const url = `/${String(resource)}/${where ? `?${JSON.stringify(where)}` : ""}`;
+    return await this.request(url, { method: "DELETE" });
   }
 
   async subscribe<T extends keyof API, V extends Event>(
@@ -137,17 +164,14 @@ export class Entber {
       event,
       mode: "subscribe",
     });
-    const response = await fetch(`${this.url}/sub/${this.id}`, {
-      headers: {
-        "content-type": "application/json",
-      },
+    const response = await fetch(`${this.url}/subscribe/${this.id}`, {
       method: "POST",
       body,
     });
     if (response.status == 200) {
-      const callbacks = this.callbacks.get(`${resource}:${event}`) || [];
+      const callbacks = this.callbacks?.get(`${resource}:${event}`) || [];
       callbacks.push(callback);
-      this.callbacks.set(`${resource}:${event}`, callbacks);
+      this.callbacks?.set(`${resource}:${event}`, callbacks);
     } else {
       console.error("error subscribing", `${resource}:${event}`);
     }
@@ -160,7 +184,7 @@ export class Entber {
       event,
       mode: "unsubscribe",
     });
-    const response = await fetch(`${this.url}/sse/${this.id}`, {
+    const response = await fetch(`${this.url}/subscribe/${this.id}`, {
       headers: {
         "content-type": "application/json",
       },
@@ -169,7 +193,7 @@ export class Entber {
     });
 
     if (response.status == 200) {
-      this.callbacks.delete(`${resource}:${event}`);
+      this.callbacks?.delete(`${resource}:${event}`);
     } else {
       console.error("error unsubscribing", `${resource}:${event}`);
     }
@@ -178,12 +202,12 @@ export class Entber {
     const body = JSON.stringify({
       mode: "unsubscribe-all",
     });
-    const response = await fetch(`${this.url}/sub/${this.id}`, {
+    const response = await fetch(`${this.url}/subscribe/${this.id}`, {
       method: "POST",
       body,
     });
     if (response.status == 200) {
-      this.callbacks.clear();
+      this.callbacks?.clear();
     } else {
       console.error("error unsubscribing all");
     }

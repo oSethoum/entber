@@ -68,6 +68,7 @@ import (
         return c
     }
     {{- end}}
+    
     {{- if skip_schema_update . | not}}
     type {{ .Name }}UpdateInput struct {
         {{- range .Fields }}
@@ -77,10 +78,8 @@ import (
         {{- range .Edges }}
         {{- if edge_field . | not }}
             {{- if .Unique}}
-                {{- if .Required }}
-                    {{ pascal .Name }}ID {{ $g.Config.IDType }} `json:"{{ camel .Name }}Id,omitempty"`
-                {{- else }}
-                    {{ pascal .Name }}ID *{{ $g.Config.IDType }} `json:"{{ camel .Name }}Id,omitempty"`
+                {{ pascal .Name }}ID *{{ $g.Config.IDType }} `json:"{{ camel .Name }}Id,omitempty"`
+                {{- if .Required | not}}
                     Clear{{ pascal .Name }} bool `json:"clear{{ pascal .Name }},omitempty"`
                 {{- end }}
             {{- else }}
@@ -109,12 +108,10 @@ import (
     {{- range .Edges}}
         {{- if edge_field . | not }}
             {{- if .Unique}}
-                {{- if .Required }}
-                    m.Set{{ pascal .Name }}ID(i.{{ pascal .Name }}ID)
-                {{- else }}
-                    if v := i.{{ pascal .Name }}ID; v != nil {
-                        m.Set{{ pascal .Name }}ID(*v)
-                    }
+                if v := i.{{ pascal .Name }}ID; v != nil {
+                    m.Set{{ pascal .Name }}ID(*v)
+                }
+                {{- if .Required | not }}
                     if i.Clear{{ pascal .Name }} {
                         m.Clear{{ pascal .Name }}()
                     }

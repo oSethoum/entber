@@ -1,0 +1,30 @@
+package routes
+
+import (
+	"{{ dir .Package }}/handlers"
+    "{{ dir .Package }}/middlewares"
+	"github.com/gofiber/fiber/v2"
+)
+
+func Init(r fiber.Router) {
+	{{- if .FiberConfig.WithAuth}}
+	r.Post("/api/login", handlers.Login)
+	r.Post("/api/register", handlers.Register)
+	r.Post("/api/reset-password", handlers.ResetPassword)
+	{{- end}}
+	{{- if .FiberConfig.WithEvents}}
+	r.Get("/api/listen", handlers.Listen)
+	{{- end}}
+	r = r.Group("/api", middlewares.Authorize)
+	{{- if .FiberConfig.WithAuth}}
+    r.Get("/logout", handlers.Logout)
+	r.Get("/logged-in", handlers.LoggedIn)
+	{{- end}}
+	{{- if .FiberConfig.WithUpload}}
+	r.Post("/upload", handlers.Upload)
+	{{- end}}
+	{{- if .FiberConfig.WithEvents}}
+	r.Post("/subscribe/:id", handlers.Subscribe)
+	{{- end}}
+	crud(r)
+}
