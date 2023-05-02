@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	AccessKey    = paseto.NewV4SymmetricKey()
+	AccessKey, _ = paseto.V4SymmetricKeyFromHex("90de0c5e407e3d03d0c9508ade9f922c997e1b42fe219f2d9a841900bd844bfb")
 	AccessSecret = []byte("ACCESS_TOKEN")
 	AccessExpire = time.Hour * 24 * 30
 )

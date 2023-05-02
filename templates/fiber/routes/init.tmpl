@@ -2,8 +2,9 @@ package routes
 
 import (
 	"{{ dir .Package }}/handlers"
-    "{{ dir .Package }}/middlewares"
+    "{{ dir .Package }}/middleware"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 )
 
 func Init(r fiber.Router) {
@@ -13,18 +14,16 @@ func Init(r fiber.Router) {
 	r.Post("/api/reset-password", handlers.ResetPassword)
 	{{- end}}
 	{{- if .FiberConfig.WithEvents}}
-	r.Get("/api/listen", handlers.Listen)
+	r.Use("/api/ws", middleware.Upgrade)
+	r.Get("/api/ws/listen", websocket.New(handlers.Listen))
 	{{- end}}
-	r = r.Group("/api", middlewares.Authorize)
+	r = r.Group("/api", middleware.Authorize)
 	{{- if .FiberConfig.WithAuth}}
     r.Get("/logout", handlers.Logout)
 	r.Get("/logged-in", handlers.LoggedIn)
 	{{- end}}
 	{{- if .FiberConfig.WithUpload}}
 	r.Post("/upload", handlers.Upload)
-	{{- end}}
-	{{- if .FiberConfig.WithEvents}}
-	r.Post("/subscribe/:id", handlers.Subscribe)
 	{{- end}}
 	crud(r)
 }

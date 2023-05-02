@@ -32,6 +32,6 @@ func StopWithSuccess(ctx *fiber.Ctx, event string, data any, codes ...int) error
 	if data != nil {
 		response["data"] = data
 	}
-	Notify(event, data)
+	go Notify(event, data)
 	return ctx.Status(code).JSON(response)
 }

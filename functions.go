@@ -128,10 +128,15 @@ func get_name(f *load.Field) string {
 }
 
 func get_type(t *field.TypeInfo) string {
-	return go_ts(t.Type.String())
+	if t.Ident != "" {
+		return go_ts(t.Ident)
+	} else {
+		return go_ts(t.String())
+	}
 }
 
 func go_ts(s string) string {
+	t := "any"
 	slice := false
 	if strings.HasPrefix(s, "[]") {
 		slice = true
@@ -139,16 +144,15 @@ func go_ts(s string) string {
 	}
 	for k, v := range gots {
 		if strings.HasPrefix(s, k) {
-			if slice {
-				return v + "[]"
-			}
-			return v
+			t = v
+			break
 		}
 	}
+
 	if slice {
-		return s + "[]"
+		return t + "[]"
 	}
-	return s
+	return t
 }
 
 func is_slice(f *load.Field) bool {
@@ -168,7 +172,7 @@ func order_fields(s *load.Schema) string {
 	fields := []string{}
 	for _, f := range s.Fields {
 		if orderable(f) {
-			fields = append(fields, get_name(f))
+			fields = append(fields, snake(get_name(f)))
 		}
 	}
 	return "\"" + strings.Join(fields, "\" | \"") + "\""
@@ -177,7 +181,7 @@ func order_fields(s *load.Schema) string {
 func select_fields(s *load.Schema) string {
 	fields := []string{}
 	for _, f := range s.Fields {
-		fields = append(fields, get_name(f))
+		fields = append(fields, snake(get_name(f)))
 	}
 	return "\"" + strings.Join(fields, "\" | \"") + "\""
 }

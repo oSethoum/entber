@@ -131,7 +131,7 @@ type OrderField struct {
         }
 
         {{ range .Fields }}
-            {{- if skip_field_create .}}{{continue}}{{- end}}
+            {{- if skip_field_query .}}{{continue}}{{- end}}
             // "{{camel .Name}}" field predicates.
             {{- if extract_type . | eq "bool" }}
             if v := i.{{ pascal .Name }}EQ; v != nil {

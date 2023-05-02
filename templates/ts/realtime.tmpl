@@ -1,0 +1,70 @@
+import { API, Event } from "./types";
+import WebSocket from "reconnecting-websocket";
+type Callback<T = any> = (data: T) => void;
+
+const stringify = (data: any) => JSON.stringify(data);
+const parse = (data: string) => JSON.parse(data);
+
+export class Realtime {
+  private socket: WebSocket;
+  private callbacks?: Map<string, Callback[]>;
+  static instance?: Realtime;
+  static getInstance(url: string) {
+    if (!Realtime.instance) {
+      Realtime.instance = new Realtime(url);
+    }
+    return Realtime.instance;
+  }
+
+  private constructor(url) {
+    this.socket = new WebSocket(url);
+    this.socket.onopen = () => {
+      this.callbacks = new Map<string, Callback[]>();
+    };
+
+    this.socket.onerror = (e) => {
+      console.error(e);
+    };
+    this.socket.onclose = () => {};
+
+    this.socket.onmessage = (e) => {
+      const message = parse(e.data);
+      console.log(message);
+
+      switch (message.kind) {
+        case "notify":
+          this.callbacks
+            ?.get(message.event)
+            ?.forEach((callback) => callback(message.content));
+          break;
+      }
+    };
+  }
+
+  async subscribe<T extends keyof API>(
+    resource: T,
+    event: Event,
+    callback: Callback
+  ) {
+    this.socket.send(
+      stringify({ event: `${resource}:${event}`, kind: "subscribe" })
+    );
+
+    this.callbacks?.set(`${resource}:${event}`, [
+      ...(this.callbacks.get(`${resource}${event}`) || []),
+      callback,
+    ]);
+  }
+
+  async unsubscribe<T extends keyof API>(resource: T, event: Event) {
+    this.socket.send(
+      stringify({ event: `${resource}:${event}`, kind: "subscribe" })
+    );
+    this.callbacks?.delete(`${resource}:${event}`);
+  }
+
+  async unsubscribeAll() {
+    this.socket.send(stringify({ kind: "unsubscribe-all" }));
+    this.callbacks?.clear();
+  }
+}

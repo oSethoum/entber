@@ -54,7 +54,7 @@ type TSConfig struct {
 type FiberConfig struct {
 	HandlersPath     string
 	RoutesPath       string
-	MiddlewaresPath  string
+	MiddlewarePath   string
 	WithUpload       bool
 	WithEvents       bool
 	WithAuth         bool
@@ -66,12 +66,13 @@ type comparable interface {
 }
 
 var gots = map[string]string{
-	"time.Time": "string",
+	"time.Time": "Date",
 	"bool":      "boolean",
 	"int":       "number",
 	"uint":      "number",
 	"float":     "number",
 	"enum":      "string",
+	"string":    "string",
 	"any":       "any",
 	"other":     "any",
 	"json":      "any",

@@ -1,0 +1,102 @@
+package handlers
+
+import (
+	"fmt"
+	"strings"
+	"sync"
+
+	"github.com/gofiber/websocket/v2"
+)
+
+type message struct {
+	Kind    string `json:"kind,omitempty"`
+	Event   string `json:"event,omitempty"`
+	Content any    `json:"content,omitempty"`
+}
+
+var subs = make(map[string]int)
+var bus = make(chan message)
+var mutex = sync.Mutex{}
+
+func safe(fn func()) {
+	mutex.Lock()
+	fn()
+	mutex.Unlock()
+}
+
+func cleanup(events string) {
+	if strings.ReplaceAll(events, " ", "") == "" {
+		return
+	}
+	evs := strings.Split(strings.TrimPrefix(events, " "), " ")
+	safe(func() {
+		for _, ev := range evs {
+			subs[ev]--
+		}
+	})
+}
+
+func Listen(c *websocket.Conn) {
+	done := make(chan bool, 1)
+	events := ""
+
+	c.WriteJSON(message{Kind: "connected", Content: "successfully connected"})
+
+	// read incoming messages
+	go func() {
+		for {
+			m := new(message)
+			err := c.ReadJSON(m)
+
+			if err != nil {
+				done <- true
+				break
+			} else {
+				switch m.Kind {
+				case "subscribe":
+					if !strings.Contains(events, m.Event) {
+						events = events + " " + m.Event
+						safe(func() { subs[m.Event]++ })
+						m.Content = "success"
+						fmt.Printf("client %p \n subscribe \n event %+v \n subs %+v \n", c, m.Event, subs)
+						c.WriteJSON(m)
+					}
+				case "unsubscribe":
+					if strings.Contains(events, m.Event) {
+						safe(func() { subs[m.Event]-- })
+						events = strings.ReplaceAll(events, m.Event, "")
+						fmt.Printf("client %p \n unsubscribe \n event %+v \n subs %+v \n", c, m.Event, subs)
+						m.Content = "success"
+						c.WriteJSON(m)
+					}
+				case "unsubscribe-all":
+					cleanup(events)
+					events = ""
+					m.Content = "success"
+					fmt.Printf("client %p \n unsubscribe-all \n events %+v \n subs %+v \n", c, events, subs)
+					c.WriteJSON(m)
+				}
+			}
+		}
+	}()
+
+	for {
+		select {
+		case m := <-bus:
+			fmt.Printf("client %p \n notify \n event %+v \n subs %+v \n", c, m.Event, subs)
+			c.WriteJSON(m)
+
+		case <-done:
+			cleanup(events)
+			println("Connection Closed")
+			return
+		}
+	}
+
+}
+
+func Notify(event string, data any) {
+	for i := 0; i < subs[event]; i++ {
+		bus <- message{Kind: "notify", Event: event, Content: data}
+	}
+}

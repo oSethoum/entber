@@ -46,8 +46,8 @@ func WithFiber(config *FiberConfig) option {
 		if config.RoutesPath == "" {
 			config.RoutesPath = "routes"
 		}
-		if config.MiddlewaresPath == "" {
-			config.MiddlewaresPath = "middlewares"
+		if config.MiddlewarePath == "" {
+			config.MiddlewarePath = "middleware"
 		}
 
 		e.data.FiberConfig = config
@@ -63,7 +63,7 @@ func WithTS(config *TSConfig) option {
 			config.ApiPath = "ts/"
 		}
 		if config.Runtime == "" {
-			config.Runtime = "deno"
+			config.Runtime = "node"
 		}
 		e.data.TSConfig = config
 	}

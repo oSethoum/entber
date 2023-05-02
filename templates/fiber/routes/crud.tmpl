@@ -11,25 +11,25 @@ func crud(r fiber.Router) {
     {{- $pn := pascal .Name}}
     {{- $ppn := pascal .Name | plural }}
     
-    {{- $r }} := r.Group("/{{ $r }}")
+    {{$r }} := r.Group("/{{ $r }}")
         {{- if skip_schema_query . | not}}
-            {{ $r }}.Get("/:id", handlers.Read{{ $pn }}).Name("{{ $r }}:read-one")
-            {{ $r }}.Get("/", handlers.Read{{ $ppn }}).Name("{{ $r }}:read-many")
+            {{ $r }}.Get("/:id", handlers.Read{{ $pn }})
+            {{ $r }}.Get("/", handlers.Read{{ $ppn }})
         {{- end}}
         
         {{- if skip_schema_create . | not}}
-            {{ $r }}.Post("/", handlers.Create{{ $pn }}).Name("{{ $r }}:create-one")
-            {{ $r }}.Post("/bulk", handlers.Create{{ $ppn }}).Name("{{ $r }}:create-many")
+            {{ $r }}.Post("/", handlers.Create{{ $pn }})
+            {{ $r }}.Post("/bulk", handlers.Create{{ $ppn }})
         {{- end}}
 
         {{- if skip_schema_update . | not}}
-            {{ $r }}.Patch("/:id", handlers.Update{{ $pn }}).Name("{{ $r }}:update-one")
-            {{ $r }}.Patch("/", handlers.Update{{ $ppn }}).Name("{{ $r }}:update-many")
+            {{ $r }}.Patch("/:id", handlers.Update{{ $pn }})
+            {{ $r }}.Patch("/", handlers.Update{{ $ppn }})
         {{- end}}
     
         {{- if skip_schema_delete . | not}}
-            {{ $r }}.Delete("/:id", handlers.Delete{{ $pn }}).Name("{{ $r }}:delete-one")
-            {{ $r }}.Delete("/", handlers.Delete{{ $ppn }}).Name("{{ $r }}:delete-many")
+            {{ $r }}.Delete("/:id", handlers.Delete{{ $pn }})
+            {{ $r }}.Delete("/", handlers.Delete{{ $ppn }})
         {{- end}}
     {{ end -}}
 }

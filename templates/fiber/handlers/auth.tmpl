@@ -10,7 +10,6 @@ import (
 
 	"aidanwoods.dev/go-paseto"
 	"github.com/gofiber/fiber/v2"
-	"github.com/rs/xid"
 )
 
 func Login(ctx *fiber.Ctx) error {
@@ -22,7 +21,7 @@ func Login(ctx *fiber.Ctx) error {
 	if err != nil {
 		return StopWithError(ctx, err)
 	}
-	user, err := db.Client.User.Query().WithRole().Where(
+	user, err := db.Client.User.Query().Where(
 		user.Or(
 			user.Username(body.Login),
 			user.Email(body.Login),
@@ -33,33 +32,16 @@ func Login(ctx *fiber.Ctx) error {
 		return StopWithError(ctx, errors.New("wrong credentials"))
 	}
 
-	refreshTokenExpiration := time.Now().Add(config.RefreshExpire)
-	refreshToken := paseto.NewToken()
-	refreshToken.SetExpiration(refreshTokenExpiration)
-	refreshToken.SetString("userId", user.ID)
-	refreshToken.SetString("tokenId", xid.New().String())
-	refreshTokenString := refreshToken.V4Encrypt(config.RefreshKey, config.RefreshSecret)
-
 	accessTokenExpiration := time.Now().Add(config.AccessExpire)
 	accessToken := paseto.NewToken()
 	accessToken.SetExpiration(accessTokenExpiration)
 	accessToken.SetString("userId", user.ID)
-	accessToken.SetString("permissions", user.Edges.Role.Permissions)
 	accessTokenString := accessToken.V4Encrypt(config.AccessKey, config.AccessSecret)
-
-	ctx.Cookie(&fiber.Cookie{
-		Name:     "refreshToken",
-		Value:    refreshTokenString,
-		HTTPOnly: true,
-		Secure:   true,
-		Expires:  refreshTokenExpiration,
-	})
 
 	return ctx.JSON(fiber.Map{
 		"code": fiber.StatusOK,
 		"data": fiber.Map{
 			"user":         user,
-			"refreshToken": refreshTokenString,
 			"accessToken":  accessTokenString,
 		},
 		"status": "success",
@@ -91,4 +73,32 @@ func Logout(ctx *fiber.Ctx) error {
 		"code":   fiber.StatusOK,
 		"status": "success",
 	})
+}
+
+func LoggedIn(ctx *fiber.Ctx) error {
+	iUserId := ctx.Context().UserValue("userId")
+	if iUserId == nil {
+		return ctx.JSON(fiber.Map{
+			"code":   404,
+			"status": "error",
+		})
+	}
+	userId := iUserId.(string)
+	user, err := db.Client.User.Query().Where(user.ID(userId)).First(ctx.UserContext())
+	if err != nil {
+		return ctx.Status(404).JSON(fiber.Map{
+			"code":   404,
+			"status": "error",
+			"error": fiber.Map{
+				"type":    "not found",
+				"details": "user not found",
+			},
+		})
+	}
+	return ctx.JSON(fiber.Map{"code": 200, "status": "success", "data": user})
+}
+
+
+func ResetPassword(c *fiber.Ctx) error {
+	return nil
 }

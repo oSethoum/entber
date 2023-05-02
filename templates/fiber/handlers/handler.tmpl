@@ -21,7 +21,7 @@ func Read{{ $pName }}(ctx *fiber.Ctx) error {
 	if err != nil {
 		return StopWithError(ctx, err)
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:find-one", {{ $cName }})
+	return StopWithSuccess(ctx, "{{ $cNames }}:read-one", {{ $cName }})
 }
 
 func Read{{ $pNames }}(ctx *fiber.Ctx) error {
@@ -37,7 +37,7 @@ func Read{{ $pNames }}(ctx *fiber.Ctx) error {
 	if err != nil {
 		return StopWithError(ctx, err)
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:find-many", {{ $cNames }})
+	return StopWithSuccess(ctx, "{{ $cNames }}:read-many", {{ $cNames }})
 }
 {{- end}}
 

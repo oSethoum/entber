@@ -33,8 +33,8 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 			writeFile(path.Join(e.data.FiberConfig.HandlersPath, "util.go"), s)
 
 			if e.data.FiberConfig.WithEvents {
-				s = parseTemplate("fiber/handlers/sse", e.data)
-				writeFile(path.Join(e.data.FiberConfig.HandlersPath, "sse.go"), s)
+				s = parseTemplate("fiber/handlers/ws", e.data)
+				writeFile(path.Join(e.data.FiberConfig.HandlersPath, "ws.go"), s)
 			}
 
 			if e.data.FiberConfig.WithUpload {
@@ -46,8 +46,11 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 				s = parseTemplate("fiber/handlers/auth", e.data)
 				writeFile(path.Join(e.data.FiberConfig.HandlersPath, "auth.go"), s)
 
-				s = parseTemplate("fiber/middlewares/auth", e.data)
-				writeFile(path.Join(e.data.FiberConfig.MiddlewaresPath, "auth.go"), s)
+				s = parseTemplate("fiber/middleware/auth", e.data)
+				writeFile(path.Join(e.data.FiberConfig.MiddlewarePath, "auth.go"), s)
+
+				s = parseTemplate("fiber/middleware/ws", e.data)
+				writeFile(path.Join(e.data.FiberConfig.MiddlewarePath, "ws.go"), s)
 			}
 
 			for _, schema := range g.Schemas {
@@ -69,6 +72,8 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 		if e.data.TSConfig != nil {
 			s := parseTemplate("ts/api", e.data)
 			writeFile(path.Join(e.data.TSConfig.ApiPath, "api.ts"), s)
+			s = parseTemplate("ts/realtime", e.data)
+			writeFile(path.Join(e.data.TSConfig.ApiPath, "realtime.ts"), s)
 			s = parseTemplate("ts/types", e.data)
 			writeFile(path.Join(e.data.TSConfig.ApiPath, "types.ts"), s)
 		}

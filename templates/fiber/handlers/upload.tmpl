@@ -1,7 +1,32 @@
 package handlers
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"fmt"
+	"os"
+
+	"path/filepath"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/rs/xid"
+)
 
 func Upload(ctx *fiber.Ctx) error {
-	return nil
+	file, err := ctx.FormFile("file")
+	if err != nil {
+		return StopWithError(ctx, err)
+	}
+	id := xid.New().String()
+	os.Mkdir("./uploads", 0777)
+	err = ctx.SaveFile(file, fmt.Sprintf("./uploads/%s.%s", id, filepath.Ext(file.Filename)))
+	if err != nil {
+		return StopWithError(ctx, err, fiber.StatusInternalServerError)
+	}
+
+	return ctx.JSON(fiber.Map{
+		"code":   fiber.StatusCreated,
+		"status": "success",
+		"data": fiber.Map{
+			"id": id,
+		},
+	})
 }

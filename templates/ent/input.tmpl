@@ -83,7 +83,7 @@ import (
                     Clear{{ pascal .Name }} bool `json:"clear{{ pascal .Name }},omitempty"`
                 {{- end }}
             {{- else }}
-                Add{{ singular .Name | pascal }}IDs []{{ $g.Config.IDType }} `json:"{{ singular .Name | camel }}Ids,omitempty"`
+                Add{{ singular .Name | pascal }}IDs []{{ $g.Config.IDType }} `json:"Add{{ singular .Name | pascal }}Ids,omitempty"`
                 {{- if not .Required }}
                     Remove{{ singular .Name | pascal }}IDs []{{ $g.Config.IDType }} `json:"remove{{ singular .Name | pascal }}Ids,omitempty"`
                     Clear{{ pascal .Name }} bool `json:"clear{{ pascal .Name }},omitempty"`
