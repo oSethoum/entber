@@ -11,6 +11,7 @@ func Init(r fiber.Router) {
 	{{- if .FiberConfig.WithAuth}}
 	r.Post("/api/login", handlers.Login)
 	r.Post("/api/register", handlers.Register)
+	r.Get("/api/download", handlers.Download)
 	r.Post("/api/reset-password", handlers.ResetPassword)
 	{{- end}}
 	{{- if .FiberConfig.WithEvents}}
