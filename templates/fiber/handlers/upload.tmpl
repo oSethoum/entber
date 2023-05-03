@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/rs/xid"
 )
 
 func Upload(ctx *fiber.Ctx) error {
@@ -15,7 +14,10 @@ func Upload(ctx *fiber.Ctx) error {
 	if err != nil {
 		return StopWithError(ctx, err)
 	}
-	id := xid.New().String()
+	id := ctx.FormValue("fileId")
+	if id == "" {
+		return StopWithError(ctx, err)
+	}
 	os.Mkdir("./uploads", 0777)
 	err = ctx.SaveFile(file, fmt.Sprintf("./uploads/%s.%s", id, filepath.Ext(file.Filename)))
 	if err != nil {
@@ -25,8 +27,5 @@ func Upload(ctx *fiber.Ctx) error {
 	return ctx.JSON(fiber.Map{
 		"code":   fiber.StatusCreated,
 		"status": "success",
-		"data": fiber.Map{
-			"id": id,
-		},
 	})
 }
