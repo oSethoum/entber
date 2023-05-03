@@ -90,6 +90,7 @@ func LoggedIn(ctx *fiber.Ctx) error {
 			"code":   404,
 			"status": "error",
 			"error": fiber.Map{
+				"status": "success",
 				"type":    "not found",
 				"details": "user not found",
 			},
