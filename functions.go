@@ -24,14 +24,15 @@ func init() {
 	gen.Funcs["null_field_create"] = null_field_create
 	gen.Funcs["null_field_update"] = null_field_update
 	gen.Funcs["extract_type"] = extract_type
+	gen.Funcs["extract_type_info"] = extract_type_info
 	gen.Funcs["edge_field"] = edge_field
 	gen.Funcs["is_comparable"] = is_comparable
 	gen.Funcs["enum_or_edge_filed"] = enum_or_edge_filed
 	gen.Funcs["get_name"] = get_name
 	gen.Funcs["get_type"] = get_type
+	gen.Funcs["get_type_info"] = get_type_info
 	gen.Funcs["is_slice"] = is_slice
 	gen.Funcs["id_type"] = id_type
-	gen.Funcs["go_ts"] = go_to_ts
 	gen.Funcs["order_fields"] = order_fields
 	gen.Funcs["select_fields"] = select_fields
 	gen.Funcs["dir"] = path.Dir
@@ -77,15 +78,19 @@ func null_field_create(f *load.Field) bool {
 	return f.Optional || f.Default
 }
 
-func null_field_update(field *load.Field) bool {
-	return !strings.HasPrefix(extract_type(field), "[]")
+func null_field_update(f *load.Field) bool {
+	return !strings.HasPrefix(extract_type(f), "[]")
 }
 
-func extract_type(field *load.Field) string {
-	if field.Info.Ident != "" {
-		return field.Info.Ident
+func extract_type_info(t *field.TypeInfo) string {
+	if t.Ident != "" {
+		return t.Ident
 	}
-	return field.Info.Type.String()
+	return t.Type.String()
+}
+
+func extract_type(f *load.Field) string {
+	return extract_type_info(f.Info)
 }
 
 func edge_field(e *load.Edge) bool {
@@ -119,15 +124,8 @@ func get_name(f *load.Field) string {
 	return n
 }
 
-func get_type(t *field.TypeInfo) string {
-	if t.Ident != "" {
-		return go_to_ts(t.Ident)
-	} else {
-		return go_to_ts(t.String())
-	}
-}
-
-func go_to_ts(s string) string {
+func get_type_info(f *field.TypeInfo) string {
+	s := extract_type_info(f)
 	t := "any"
 	slice := false
 	if strings.HasPrefix(s, "[]") {
@@ -147,14 +145,44 @@ func go_to_ts(s string) string {
 	return t
 }
 
+func get_type(f *load.Field) string {
+	if len(f.Enums) > 0 {
+		enums := []string{}
+		for _, v := range f.Enums {
+			enums = append(enums, "\""+v.V+"\"")
+		}
+		return strings.Join(enums, " | ")
+	} else {
+		s := extract_type(f)
+
+		t := "any"
+		slice := false
+		if strings.HasPrefix(s, "[]") {
+			slice = true
+			s = strings.TrimPrefix(s, "[]")
+		}
+		for k, v := range go_ts {
+			if strings.HasPrefix(s, k) {
+				t = v
+				break
+			}
+		}
+
+		if slice {
+			return t + "[]"
+		}
+		return t
+	}
+}
+
 func is_slice(f *load.Field) bool {
-	return strings.HasPrefix(get_type(f.Info), "[]")
+	return strings.HasSuffix(get_type(f), "[]")
 }
 
 func id_type(s *load.Schema) string {
 	for _, f := range s.Fields {
 		if strings.ToLower(f.Name) == "id" {
-			return get_type(f.Info)
+			return get_type(f)
 		}
 	}
 	return "number"

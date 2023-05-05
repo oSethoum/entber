@@ -1,11 +1,15 @@
 import { API, ID, Response, Event } from "./types";
+import WebSocket from "reconnecting-websocket";
+
 type Callback<T = any> = (data: T) => void;
-const stringify = (data: any) => JSON.stringify(data);
-const parse = (data: string) => JSON.parse(data);
+
 export interface EntberInit {
   headers?: HeadersInit;
   mode?: RequestMode;
 }
+
+const stringify = (data: any) => JSON.stringify(data);
+const parse = (data: string) => JSON.parse(data);
 
 export class Entber {
   private socket: WebSocket;
@@ -49,7 +53,9 @@ export class Entber {
     };
   }
 
-  getUrl = () => this.url;
+  getUrl() {
+    return this.url;
+  }
 
   async request(url: string, init?: RequestInit): Promise<Response<any>> {
     const method = init?.method || "GET";
@@ -70,7 +76,16 @@ export class Entber {
     return json;
   }
 
-  async find<T extends keyof API>(
+  async uploadOne(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return await this.request("/upload", {
+      method: "POST",
+      body: formData,
+    });
+  }
+
+  async findOne<T extends keyof API>(
     resource: T,
     id: ID
   ): Promise<Response<API[T]["entity"]>> {
@@ -78,7 +93,7 @@ export class Entber {
     return await this.request(url);
   }
 
-  async query<T extends keyof API>(
+  async findMany<T extends keyof API>(
     resource: T,
     query?: API[T]["queryInput"]
   ): Promise<Response<Array<API[T]["entity"]>>> {
@@ -88,7 +103,7 @@ export class Entber {
     return await this.request(url);
   }
 
-  async create<T extends keyof API>(
+  async createOne<T extends keyof API>(
     resource: T,
     input: API[T]["createInput"]
   ): Promise<Response<API[T]["entity"]>> {
@@ -101,7 +116,7 @@ export class Entber {
     });
   }
 
-  async createBulk<T extends keyof API>(
+  async createMany<T extends keyof API>(
     resource: T,
     input: API[T]["createInput"][]
   ): Promise<Response<API[T]["entity"][]>> {
@@ -114,7 +129,7 @@ export class Entber {
     });
   }
 
-  async update<T extends keyof API>(
+  async updateOne<T extends keyof API>(
     resource: T,
     id: ID,
     input: API[T]["updateInput"]
@@ -144,7 +159,7 @@ export class Entber {
     });
   }
 
-  async delete<T extends keyof API>(
+  async deleteOne<T extends keyof API>(
     resource: T,
     id: ID
   ): Promise<Response<undefined>> {

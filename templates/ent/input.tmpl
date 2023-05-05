@@ -93,7 +93,11 @@ import (
         if v := i.{{ pascal .Name }}; v != nil {
         m.Set{{pascal .Name}}(*v)
         }
-        {{- else }}
+        {{ else if is_slice . }}
+        if len(i.{{ pascal .Name }}) > 0 {
+            m.Set{{pascal .Name}}(i.{{ pascal .Name }})
+        }
+        {{ else -}}
         m.Set{{pascal .Name}}(i.{{ pascal .Name }})
         {{- end }}
     {{- end -}}

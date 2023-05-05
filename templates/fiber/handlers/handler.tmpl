@@ -14,16 +14,16 @@ import (
 {{- $cName := camel .CurrentSchema.Name  }}
 {{- $cNames := camel .CurrentSchema.Name | plural }}
 
-func Read{{ $pName }}(ctx *fiber.Ctx) error {
+func Find{{ $pName }}(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	{{ $cName }}, err := db.Client.{{ $pName }}.Get(ctx.UserContext(), id)
 	if err != nil {
 		return StopWithError(ctx, err)
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:read-one", {{ $cName }})
+	return StopWithSuccess(ctx, "{{ $cNames }}:find-one", {{ $cName }})
 }
 
-func Read{{ $pNames }}(ctx *fiber.Ctx) error {
+func Find{{ $pNames }}(ctx *fiber.Ctx) error {
 	query := new(ent.{{ $pName }}QueryInput)
 	q := ctx.Query("query")
 	if q != "" {
@@ -36,7 +36,7 @@ func Read{{ $pNames }}(ctx *fiber.Ctx) error {
 	if err != nil {
 		return StopWithError(ctx, err)
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:read-many", {{ $cNames }})
+	return StopWithSuccess(ctx, "{{ $cNames }}:find-many", {{ $cNames }})
 }
 
 func Create{{ $pName }}(ctx *fiber.Ctx) error {

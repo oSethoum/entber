@@ -15,8 +15,8 @@ func routes(r fiber.Router) {
     {{- $pn := pascal .Name}}
     {{- $ppn := pascal .Name | plural -}}
         {{$r }} := r.Group("/{{ $r }}")
-        {{ $r }}.Get("/:id", handlers.Read{{ $pn }})
-        {{ $r }}.Get("/", handlers.Read{{ $ppn }})
+        {{ $r }}.Get("/:id", handlers.Find{{ $pn }})
+        {{ $r }}.Get("/", handlers.Find{{ $ppn }})
         {{ $r }}.Post("/", handlers.Create{{ $pn }})
         {{ $r }}.Post("/bulk", handlers.Create{{ $ppn }})
         {{ $r }}.Patch("/:id", handlers.Update{{ $pn }})

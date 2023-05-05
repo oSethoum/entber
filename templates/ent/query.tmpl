@@ -38,6 +38,12 @@ type OrderField struct {
 	    And 	[]*{{ pascal .Name }}WhereInput `json:"and"`
 
         {{- range .Fields }}
+            {{- if gt (len .Enums) 0  }}
+            {{ pascal .Name }}EQ     *{{ extract_type . }}   `json:"{{ camel .Name }}EQ,omitempty"`
+            {{ pascal .Name }}NEQ    *{{ extract_type . }}   `json:"{{ camel .Name }}NEQ,omitempty"`
+            {{ pascal .Name }}In     []{{ extract_type . }}  `json:"{{ camel .Name }}In,omitempty"`
+            {{ pascal .Name }}NotIn  []{{ extract_type . }}  `json:"{{ camel .Name }}NotIn,omitempty"`
+            {{- end -}}
             {{- if extract_type . | eq "bool" }}
                 {{ pascal .Name }}EQ  *{{ extract_type . }}  `json:"{{ camel .Name }}EQ,omitempty"`
                 {{ pascal .Name }}NEQ *{{ extract_type . }}  `json:"{{ camel .Name }}NEQ,omitempty"`
@@ -127,13 +133,28 @@ type OrderField struct {
         }
 
         {{ range .Fields }}
+            {{- if gt (len .Enums) 0  }}
+            if v := i.{{ pascal .Name }}EQ; v != nil {
+			    predicates = append(predicates, {{ lower $s.Name }}.{{ pascal .Name }}EQ(*v))
+		    }
+            if v := i.{{ pascal .Name }}NEQ; v != nil {
+			    predicates = append(predicates, {{ lower $s.Name }}.{{ pascal .Name }}NEQ(*v))
+		    }
+            if v := i.{{ pascal .Name }}In; len(v) > 0 {
+                predicates = append(predicates, {{ lower $s.Name }}.{{ pascal .Name }}In(v...))
+            } 
+            if v := i.{{ pascal .Name }}NotIn; len(v) > 0 {
+                predicates = append(predicates, {{ lower $s.Name }}.{{ pascal .Name }}NotIn(v...))
+            }
+            {{- end -}}
+
             // "{{camel .Name}}" field predicates.
             {{- if extract_type . | eq "bool" }}
             if v := i.{{ pascal .Name }}EQ; v != nil {
-			predicates = append(predicates, {{ lower $s.Name }}.{{ pascal .Name }}EQ(*v))
+			    predicates = append(predicates, {{ lower $s.Name }}.{{ pascal .Name }}EQ(*v))
 		    }
-            if v := i.{{ pascal .Name }}EQ; v != nil {
-                predicates = append(predicates, {{ lower $s.Name }}.{{ pascal .Name }}EQ(*v))
+            if v := i.{{ pascal .Name }}NEQ; v != nil {
+                predicates = append(predicates, {{ lower $s.Name }}.{{ pascal .Name }}NEQ(*v))
             }
             {{- end }}
             {{- if is_comparable . }}

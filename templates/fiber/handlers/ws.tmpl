@@ -100,3 +100,10 @@ func Notify(event string, data any) {
 		bus <- message{Kind: "notify", Event: event, Content: data}
 	}
 }
+
+func Upgrade(c *fiber.Ctx) error {
+	if websocket.IsWebSocketUpgrade(c) {
+		return c.Next()
+	}
+	return fiber.ErrUpgradeRequired
+}

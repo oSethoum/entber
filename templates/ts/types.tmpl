@@ -5,7 +5,7 @@ type OrderDirection = "ASC" | "DESC";
 
 export interface {{ pascal .Name }} {
     {{ range .Fields }}
-        {{ get_name . }}{{- if or .Optional .Nillable }}?{{- end}}: {{ get_type .Info }};
+        {{ get_name . }}{{- if or .Optional .Nillable }}?{{- end}}: {{ get_type . }};
     {{- end}}
     {{- $ed := len .Edges }}
     {{- if gt $ed 0 }}
@@ -19,14 +19,14 @@ export interface {{ pascal .Name }} {
 
 export interface {{ pascal .Name }}CreateInput{
     {{ range .Fields }}
-        {{ get_name . }}{{- if or .Optional .Nillable .Default }}?{{- end}}: {{ get_type .Info }};
+        {{ get_name . }}{{- if or .Optional .Nillable .Default }}?{{- end}}: {{ get_type . }};
     {{- end}}
     {{- range .Edges}}
         {{- if edge_field . | not }}
             {{- if .Unique}}
-                {{ camel .Name }}Id{{- if not .Required}}?{{- end}}: {{ get_type $g.Config.IDType }};
+                {{ camel .Name }}Id{{- if not .Required}}?{{- end}}: {{ get_type_info $g.Config.IDType }};
             {{- else}}
-                add{{ singular .Name | pascal }}Ids?: {{ get_type $g.Config.IDType }}[];
+                add{{ singular .Name | pascal }}Ids?: {{ get_type_info $g.Config.IDType }}[];
             {{- end  }}
         {{- end }}
     {{- end}}
@@ -34,12 +34,12 @@ export interface {{ pascal .Name }}CreateInput{
 
 export interface {{ pascal .Name }}UpdateInput{
     {{ range .Fields }}
-        {{ get_name . }}{{- if is_slice . | not }}?{{ end }}: {{ get_type .Info }};
+        {{ get_name . }}{{- if is_slice . | not }}?{{ end }}: {{ get_type . }};
     {{- end}}
     {{- range .Edges}}
         {{- if edge_field . | not }}
             {{- if .Unique}}
-                {{ camel .Name }}Id?: {{ get_type $g.Config.IDType }};
+                {{ camel .Name }}Id?: {{ get_type_info $g.Config.IDType }};
             {{- else}}
                 add{{ singular .Name | pascal }}Ids?: {{ id_type $s }}[];
                 remove{{ singular .Name | pascal }}Ids?: {{ id_type $s }}[];
@@ -72,22 +72,29 @@ export interface {{ pascal .Name }}WhereInput {
     not?: {{ pascal .Name }}WhereInput;  
     or?: {{ pascal .Name }}WhereInput[];
     and?: {{ pascal .Name }}WhereInput[];
+    
     {{- range .Fields }}
-        {{- if get_type .Info | eq "boolean" }}
-            {{ camel .Name }}EQ?:  {{ get_type .Info }};
-            {{ camel .Name }}NEQ?: {{ get_type .Info }}; 
+        {{- if gt (len .Enums) 0 -}}
+            {{ camel .Name }}EQ?:  {{ get_type . }};
+            {{ camel .Name }}NEQ?: {{ get_type . }};
+            {{ camel .Name }}In?: ({{ get_type . }})[];
+            {{ camel .Name }}NotIn?: ({{ get_type . }})[];
+        {{- end -}}
+        {{- if get_type . | eq "boolean" }}
+            {{ camel .Name }}EQ?:  {{ get_type . }};
+            {{ camel .Name }}NEQ?: {{ get_type . }}; 
         {{- end }}
         {{- if is_comparable . }}
-            {{ camel .Name }}?: {{ get_type .Info }};
-            {{ camel .Name }}NEQ?: {{ get_type .Info }} 
-            {{ camel .Name }}In?: {{ get_type .Info }}[];
-            {{ camel .Name }}NotIn?: {{ get_type .Info }}[];
+            {{ camel .Name }}?: {{ get_type . }};
+            {{ camel .Name }}NEQ?: {{ get_type . }} 
+            {{ camel .Name }}In?: {{ get_type . }}[];
+            {{ camel .Name }}NotIn?: {{ get_type . }}[];
             
             {{- if enum_or_edge_filed $s . | not }}
-                {{ camel .Name }}GT?: {{ get_type .Info }};
-                {{ camel .Name }}GTE?: {{ get_type .Info }};
-                {{ camel .Name }}LT?: {{ get_type .Info }};
-                {{ camel .Name }}LTE?: {{ get_type .Info }};
+                {{ camel .Name }}GT?: {{ get_type . }};
+                {{ camel .Name }}GTE?: {{ get_type . }};
+                {{ camel .Name }}LT?: {{ get_type . }};
+                {{ camel .Name }}LTE?: {{ get_type . }};
             {{- end }}
         {{- end }}
         {{- if .Optional }}
@@ -95,7 +102,7 @@ export interface {{ pascal .Name }}WhereInput {
             {{ camel .Name }}NotNil?: boolean;
         {{- end }}
         {{- if eq .Name "id" | not }}
-            {{- if get_type .Info | eq "string"}}
+            {{- if get_type . | eq "string"}}
                 {{ camel .Name }}Contains?: string; 
                 {{ camel .Name }}HasPrefix?: string; 
                 {{ camel .Name }}HasSuffix?: string; 
@@ -114,24 +121,12 @@ export interface {{ pascal .Name }}WhereInput {
 
 // api related types
 export type ID = string;
-export type ResponseStatus = "success" | "error" | "warning";
-export type ResponseErrorType = "validation";
-export type ResponseErrorDetail = {
-  field: string;
-  constraint: string;
-  value: string;
-};
-export type ResponseError = {
-  type: ResponseErrorType;
-  details: ResponseErrorDetail[];
-  refresh?: boolean;
-};
 export type Response<T = undefined> = {
-  status: ResponseStatus;
-  code: number;
-  data: T;
-  error?: ResponseError;
-};
+    code: number;
+    status: "success" | "error";
+    data: T;
+    error?: string;
+}
 
 export type API = {
     {{ range .Schemas}}
@@ -146,8 +141,8 @@ export type API = {
 };
 
 export type Event =
-  | "read-one"
-  | "read-many"
+  | "find-one"
+  | "find-many"
   | "create-one"
   | "create-many"
   | "update-one"
