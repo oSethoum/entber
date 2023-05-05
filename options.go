@@ -35,22 +35,9 @@ func WithDB(config *DBConfig) option {
 	}
 }
 
-func WithFiber(config *FiberConfig) option {
+func WithFiber() option {
 	return func(e *extension) {
-		if config == nil {
-			config = new(FiberConfig)
-		}
-		if config.HandlersPath == "" {
-			config.HandlersPath = "handlers"
-		}
-		if config.RoutesPath == "" {
-			config.RoutesPath = "routes"
-		}
-		if config.MiddlewarePath == "" {
-			config.MiddlewarePath = "middleware"
-		}
-
-		e.data.FiberConfig = config
+		e.data.WithFiber = true
 	}
 }
 
@@ -61,9 +48,6 @@ func WithTS(config *TSConfig) option {
 		}
 		if config.ApiPath == "" {
 			config.ApiPath = "ts/"
-		}
-		if config.Runtime == "" {
-			config.Runtime = "node"
 		}
 		e.data.TSConfig = config
 	}

@@ -31,19 +31,11 @@ func init() {
 	gen.Funcs["get_type"] = get_type
 	gen.Funcs["is_slice"] = is_slice
 	gen.Funcs["id_type"] = id_type
-	gen.Funcs["go_ts"] = go_ts
+	gen.Funcs["go_ts"] = go_to_ts
 	gen.Funcs["order_fields"] = order_fields
 	gen.Funcs["select_fields"] = select_fields
 	gen.Funcs["dir"] = path.Dir
-	gen.Funcs["skip_field_create"] = skip_field_create
-	gen.Funcs["skip_field_update"] = skip_field_update
-	gen.Funcs["skip_field_query"] = skip_field_query
-	gen.Funcs["skip_field_type"] = skip_field_type
-	gen.Funcs["skip_schema_query"] = skip_schema_query
-	gen.Funcs["skip_schema_create"] = skip_schema_create
-	gen.Funcs["skip_schema_update"] = skip_schema_update
-	gen.Funcs["skip_schema_delete"] = skip_schema_delete
-	gen.Funcs["skip_edge_query"] = skip_edge_query
+
 }
 
 func tag(f *load.Field) string {
@@ -129,20 +121,20 @@ func get_name(f *load.Field) string {
 
 func get_type(t *field.TypeInfo) string {
 	if t.Ident != "" {
-		return go_ts(t.Ident)
+		return go_to_ts(t.Ident)
 	} else {
-		return go_ts(t.String())
+		return go_to_ts(t.String())
 	}
 }
 
-func go_ts(s string) string {
+func go_to_ts(s string) string {
 	t := "any"
 	slice := false
 	if strings.HasPrefix(s, "[]") {
 		slice = true
 		s = strings.TrimPrefix(s, "[]")
 	}
-	for k, v := range gots {
+	for k, v := range go_ts {
 		if strings.HasPrefix(s, k) {
 			t = v
 			break
@@ -195,49 +187,4 @@ func orderable(f *load.Field) bool {
 		"time.Time",
 		"bool",
 	})
-}
-
-func skip_field_create(f *load.Field) bool {
-	return (f.Default && f.Name == "id") || shouldSkip(f.Annotations, SkipFieldCreate)
-}
-
-func skip_field_update(f *load.Field) bool {
-	return f.Immutable || (f.Default && f.Name == "id") || shouldSkip(f.Annotations, SkipFieldUpdate)
-}
-
-func skip_field_query(f *load.Field) bool {
-	return shouldSkip(f.Annotations, SkipFieldQuery)
-}
-
-func skip_field_type(f *load.Field) bool {
-	return shouldSkip(f.Annotations, SkipFieldType)
-}
-
-func skip_schema_query(s *load.Schema) bool {
-	return shouldSkip(s.Annotations, SkipSchemaQuery)
-}
-
-func skip_schema_create(s *load.Schema) bool {
-	return shouldSkip(s.Annotations, SkipSchemaCreate)
-}
-
-func skip_schema_update(s *load.Schema) bool {
-	return shouldSkip(s.Annotations, SkipSchemaUpdate)
-}
-
-func skip_schema_delete(s *load.Schema) bool {
-	return shouldSkip(s.Annotations, SkipSchemaDelete)
-}
-
-func skip_edge_query(e *load.Edge) bool {
-	return shouldSkip(e.Annotations, SkipEdgeQuery)
-}
-
-func shouldSkip(annotations map[string]any, skip uint) bool {
-	a := &skipAnnotation{}
-	a.decode(annotations[skipAnootationName])
-	if in(skip, a.Skips) || in(SkipAll, a.Skips) {
-		return true
-	}
-	return false
 }

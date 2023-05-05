@@ -9,15 +9,7 @@ func StopWithError(ctx *fiber.Ctx, err error, codes ...int) error {
 	if len(codes) > 0 {
 		code = codes[0]
 	}
-	response := fiber.Map{
-		"code":   code,
-		"status": "error",
-	}
-
-	if err != nil {
-		response["error"] = err.Error()
-	}
-	return ctx.Status(code).JSON(response)
+	return ctx.Status(code).SendString(err.Error())
 }
 
 func StopWithSuccess(ctx *fiber.Ctx, event string, data any, codes ...int) error {
@@ -25,13 +17,6 @@ func StopWithSuccess(ctx *fiber.Ctx, event string, data any, codes ...int) error
 	if len(codes) > 0 {
 		code = codes[0]
 	}
-	response := fiber.Map{
-		"code":   code,
-		"status": "success",
-	}
-	if data != nil {
-		response["data"] = data
-	}
 	go Notify(event, data)
-	return ctx.Status(code).JSON(response)
+	return ctx.Status(code).JSON(data)
 }

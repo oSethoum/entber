@@ -1,80 +1,73 @@
-import { API, ID, AuthAPI, Response, User, Event } from "./types";
+import { API, ID, Response, Event } from "./types";
+type Callback<T = any> = (data: T) => void;
+const stringify = (data: any) => JSON.stringify(data);
+const parse = (data: string) => JSON.parse(data);
+export interface EntberInit {
+  headers?: HeadersInit;
+  mode?: RequestMode;
+}
 
 export class Entber {
+  private socket: WebSocket;
+  private callbacks?: Map<string, Callback[]>;
+  private entberInit?: EntberInit;
   private readonly url: string;
-  private accessToken: string;
-  constructor(url: string) {
-    this.accessToken = "";
+  static instance?: Entber;
+
+  static getInstance(url: string, init?: EntberInit) {
+    if (!Entber.instance) {
+      Entber.instance = new Entber(url, init);
+    }
+    return Entber.instance;
+  }
+
+  private constructor(url: string, init?: EntberInit) {
     this.url = url.replace(/\/+$/, "");
+    this.entberInit = init;
+    this.socket = new WebSocket(url);
+    this.socket.onopen = () => {
+      this.callbacks = new Map<string, Callback[]>();
+    };
+
+    this.socket.onerror = (e) => {
+      console.error(e);
+    };
+
+    this.socket.onclose = () => {};
+
+    this.socket.onmessage = (e) => {
+      const message = parse(e.data);
+      console.log(message);
+
+      switch (message.kind) {
+        case "notify":
+          this.callbacks
+            ?.get(message.event)
+            ?.forEach((callback) => callback(message.content));
+          break;
+      }
+    };
   }
 
   getUrl = () => this.url;
 
-  async isLoggedIn() {
-    const response: Response<User> = await this.request("/logged-in");
-    return response;
-  }
-
-  private storeToken(token: string) {
-    this.accessToken = token;
-    localStorage.setItem("accessToken", token);
-  }
-
-  getToken(): string {
-    if (this.accessToken == "") {
-      this.accessToken = localStorage.getItem("accessToken") || "";
-    }
-    return this.accessToken;
-  }
-
   async request(url: string, init?: RequestInit): Promise<Response<any>> {
     const method = init?.method || "GET";
     const headers = {
-      "content-type": "application/json",
-      authorization: this.getToken(),
       ...init?.headers,
+      ...this.entberInit?.headers,
     };
+
     let response = await fetch(`${this.url}${url}`, {
       method,
       ...init,
       headers,
+      mode: this.entberInit?.mode,
     });
+
     const json = await response.json();
     console.log(json);
     return json;
-  }
-
-  async login(
-    input: AuthAPI["login"]["input"]
-  ): Promise<Response<AuthAPI["login"]["response"]>> {
-    const body = JSON.stringify(input);
-    const response: Response<AuthAPI["login"]["response"]> = await this.request(
-      "/login",
-      { method: "POST", body }
-    );
-    if (response.code == 200) {
-      this.storeToken(response.data?.accessToken);
-    }
-    return response;
-  }
-
-  async register(
-    input: AuthAPI["register"]["input"]
-  ): Promise<Response<AuthAPI["register"]["response"]>> {
-    const response = await this.request("/register", {
-      method: "POST",
-      body: JSON.stringify(input),
-    });
-    return response;
-  }
-
-  async logout() {
-    const response: Response = await this.request("/logout");
-    if (response.code == 200 || response.code == 401) {
-      this.accessToken = "";
-      localStorage.removeItem("accessToken");
-    }
-    return response;
   }
 
   async find<T extends keyof API>(
@@ -101,7 +94,11 @@ export class Entber {
   ): Promise<Response<API[T]["entity"]>> {
     const url = `/${String(resource)}/`;
     const body = JSON.stringify(input);
-    return await this.request(url, { method: "POST", body });
+    return await this.request(url, {
+      method: "POST",
+      body,
+      headers: { "content-type": "application/json" },
+    });
   }
 
   async createBulk<T extends keyof API>(
@@ -110,7 +107,11 @@ export class Entber {
   ): Promise<Response<API[T]["entity"][]>> {
     const url = `/${String(resource)}/bulk`;
     const body = JSON.stringify(input);
-    return await this.request(url, { method: "POST", body });
+    return await this.request(url, {
+      method: "POST",
+      body,
+      headers: { "content-type": "application/json" },
+    });
   }
 
   async update<T extends keyof API>(
@@ -120,7 +121,11 @@ export class Entber {
   ): Promise<Response<API[T]["entity"]>> {
     const url = `/${String(resource)}/${id}`;
     const body = JSON.stringify(input);
-    return await this.request(url, { method: "PATCH", body });
+    return await this.request(url, {
+      method: "PATCH",
+      body,
+      headers: { "content-type": "application/json" },
+    });
   }
 
   async updateMany<T extends keyof API>(
@@ -132,7 +137,11 @@ export class Entber {
       where ? `?${JSON.stringify(where)}` : ""
     }`;
     const body = JSON.stringify(input);
-    return await this.request(url, { method: "PATCH", body });
+    return await this.request(url, {
+      method: "PATCH",
+      body,
+      headers: { "content-type": "application/json" },
+    });
   }
 
   async delete<T extends keyof API>(
@@ -151,5 +160,32 @@ export class Entber {
       where ? `?${JSON.stringify(where)}` : ""
     }`;
     return await this.request(url, { method: "DELETE" });
+  }
+
+  async subscribe<T extends keyof API>(
+    resource: T,
+    event: Event,
+    callback: Callback
+  ) {
+    this.socket.send(
+      stringify({ event: `${resource}:${event}`, kind: "subscribe" })
+    );
+
+    this.callbacks?.set(`${resource}:${event}`, [
+      ...(this.callbacks.get(`${resource}${event}`) || []),
+      callback,
+    ]);
+  }
+
+  async unsubscribe<T extends keyof API>(resource: T, event: Event) {
+    this.socket.send(
+      stringify({ event: `${resource}:${event}`, kind: "subscribe" })
+    );
+    this.callbacks?.delete(`${resource}:${event}`);
+  }
+
+  async unsubscribeAll() {
+    this.socket.send(stringify({ kind: "unsubscribe-all" }));
+    this.callbacks?.clear();
   }
 }

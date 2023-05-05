@@ -47,7 +47,7 @@ func has_prefixes(s string, px []string) bool {
 }
 
 func writeFile(destination string, content string) {
-	destination = path.Join(get_gomod_dir(), destination)
+	destination = path.Join(get_go_mod_dir(), destination)
 	os.MkdirAll(path.Dir(destination), 0777)
 	err := os.WriteFile(destination, []byte(content), 07777)
 	if err != nil {
@@ -61,7 +61,7 @@ func catch(err error) {
 	}
 }
 
-func get_gomod_dir() string {
+func get_go_mod_dir() string {
 	current, err := os.Getwd()
 	catch(err)
 

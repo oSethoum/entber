@@ -20,18 +20,13 @@ const (
 	PostgreSQL Driver = "postgres"
 )
 
-const (
-	Deno = "deno"
-	Node = "node"
-)
-
 type option = func(*extension)
 
 type data struct {
 	*gen.Graph
-	DBConfig    *DBConfig
-	TSConfig    *TSConfig
-	FiberConfig *FiberConfig
+	DBConfig  *DBConfig
+	TSConfig  *TSConfig
+	WithFiber bool
 
 	CurrentSchema *load.Schema
 }
@@ -42,30 +37,15 @@ type DBConfig struct {
 	Dsn    string
 }
 
-type AuthConfig struct {
-	Token bool
-}
-
 type TSConfig struct {
 	ApiPath string
-	Runtime string
-}
-
-type FiberConfig struct {
-	HandlersPath     string
-	RoutesPath       string
-	MiddlewarePath   string
-	WithUpload       bool
-	WithEvents       bool
-	WithAuth         bool
-	WithoutFiberAuth bool
 }
 
 type comparable interface {
 	~string | ~int | ~float32 | ~uint
 }
 
-var gots = map[string]string{
+var go_ts = map[string]string{
 	"time.Time": "Date",
 	"bool":      "boolean",
 	"int":       "number",
@@ -76,9 +56,4 @@ var gots = map[string]string{
 	"any":       "any",
 	"other":     "any",
 	"json":      "any",
-}
-
-type skipAnnotation struct {
-	name  string
-	Skips []uint
 }

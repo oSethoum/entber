@@ -1,0 +1,27 @@
+package routes
+
+import (
+    "{{ dir .Package }}/handlers"
+    "github.com/gofiber/fiber/v2"
+)
+
+func routes(r fiber.Router) {
+    r.Get("/ws/listen", handlers.Upgrade)
+    r.Post("/upload", handlers.Upload)
+    r.Get("/download/:filename", handlers.Download)
+    
+    {{ range .Schemas }}
+    {{ $r := plural .Name | camel  }}
+    {{- $pn := pascal .Name}}
+    {{- $ppn := pascal .Name | plural -}}
+        {{$r }} := r.Group("/{{ $r }}")
+        {{ $r }}.Get("/:id", handlers.Read{{ $pn }})
+        {{ $r }}.Get("/", handlers.Read{{ $ppn }})
+        {{ $r }}.Post("/", handlers.Create{{ $pn }})
+        {{ $r }}.Post("/bulk", handlers.Create{{ $ppn }})
+        {{ $r }}.Patch("/:id", handlers.Update{{ $pn }})
+        {{ $r }}.Patch("/", handlers.Update{{ $ppn }})
+        {{ $r }}.Delete("/:id", handlers.Delete{{ $pn }})
+        {{ $r }}.Delete("/", handlers.Delete{{ $ppn }})
+    {{ end }}
+}

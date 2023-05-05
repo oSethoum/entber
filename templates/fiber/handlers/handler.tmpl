@@ -14,7 +14,6 @@ import (
 {{- $cName := camel .CurrentSchema.Name  }}
 {{- $cNames := camel .CurrentSchema.Name | plural }}
 
-{{- if skip_schema_query .CurrentSchema | not}}
 func Read{{ $pName }}(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	{{ $cName }}, err := db.Client.{{ $pName }}.Get(ctx.UserContext(), id)
@@ -39,9 +38,7 @@ func Read{{ $pNames }}(ctx *fiber.Ctx) error {
 	}
 	return StopWithSuccess(ctx, "{{ $cNames }}:read-many", {{ $cNames }})
 }
-{{- end}}
 
-{{- if skip_schema_create .CurrentSchema | not}}
 func Create{{ $pName }}(ctx *fiber.Ctx) error {
 	body := new(ent.{{ $pName }}CreateInput)
 	err := ctx.BodyParser(body)
@@ -77,9 +74,7 @@ func Create{{ $pNames }}(ctx *fiber.Ctx) error {
 	}
 	return StopWithSuccess(ctx, "{{ $cNames }}:create-many", {{ $cNames }}, fiber.StatusCreated)
 }
-{{- end}}
 
-{{- if skip_schema_update .CurrentSchema | not}}
 func Update{{ $pName }}(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	body := new(ent.{{ $pName }}UpdateInput)
@@ -120,9 +115,7 @@ func Update{{ $pNames }}(ctx *fiber.Ctx) error {
 	}
 	return StopWithSuccess(ctx, "{{ $cNames }}:update-many", nil)
 }
-{{- end}}
 
-{{- if skip_schema_delete .CurrentSchema | not}}
 func Delete{{ $pName }}(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	err := db.Client.{{ $pName }}.DeleteOneID(id).Exec(ctx.UserContext())
@@ -153,4 +146,3 @@ func Delete{{ $pNames }}(ctx *fiber.Ctx) error {
 	}
 	return StopWithSuccess(ctx, "{{ $cNames }}:delete-many", nil)
 }
-{{- end}}
