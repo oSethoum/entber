@@ -12,23 +12,36 @@ const stringify = (data: any) => JSON.stringify(data);
 const parse = (data: string) => JSON.parse(data);
 
 export class Entber {
-  private socket: WebSocket;
+  private socket?: WebSocket;
   private callbacks?: Map<string, Callback[]>;
-  private entberInit?: EntberInit;
   private readonly url: string;
   static instance?: Entber;
+  private accessToken?: string;
+  getAccessToken = () => {
+    if (!this.accessToken) {
+      this.accessToken = localStorage.getItem("accessToken") || "";
+    }
+    return this.accessToken;
+  };
 
-  static getInstance(url: string, init?: EntberInit) {
+  cleanup() {
+    localStorage.removeItem("accessToken");
+    this.accessToken = undefined;
+    this.socket?.close();
+  }
+
+  static getInstance(url: string) {
     if (!Entber.instance) {
-      Entber.instance = new Entber(url, init);
+      Entber.instance = new Entber(url);
     }
     return Entber.instance;
   }
 
-  private constructor(url: string, init?: EntberInit) {
-    this.url = url.replace(/\/+$/, "");
-    this.entberInit = init;
-    this.socket = new WebSocket(url);
+  private ws() {
+    if (this.socket) return;
+    const wsUrl =
+      this.url.replace(/^http/, "ws") + "/ws/listen?accessToken=" + this.getAccessToken();
+    this.socket = new WebSocket(wsUrl);
     this.socket.onopen = () => {
       this.callbacks = new Map<string, Callback[]>();
     };
@@ -53,6 +66,10 @@ export class Entber {
     };
   }
 
+  private constructor(url: string) {
+    this.url = url.replace(/\/+$/, "");
+  }
+
   getUrl() {
     return this.url;
   }
@@ -61,14 +78,13 @@ export class Entber {
     const method = init?.method || "GET";
     const headers = {
       ...init?.headers,
-      ...this.entberInit?.headers,
+      authorization: this.getAccessToken(),
     };
 
     let response = await fetch(`${this.url}${url}`, {
       method,
       ...init,
       headers,
-      mode: this.entberInit?.mode,
     });
 
     const json = await response.json();
@@ -76,12 +92,31 @@ export class Entber {
     return json;
   }
 
-  async uploadOne(file: File) {
+  async findFile(filename: string) {
+    return await this.request("/file/" + filename);
+  }
+
+  async createFile(file: File) {
     const formData = new FormData();
     formData.append("file", file);
-    return await this.request("/upload", {
+    return await this.request("/files", {
       method: "POST",
       body: formData,
+    });
+  }
+
+  async updateFile(filename: string, file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return await this.request("/files/" + filename, {
+      method: "PATCH",
+      body: formData,
+    });
+  }
+
+  async deleteFile(filename: string) {
+    return await this.request("/files/" + filename, {
+      method: "DELETE",
     });
   }
 
@@ -182,7 +217,8 @@ export class Entber {
     event: Event,
     callback: Callback
   ) {
-    this.socket.send(
+    this.ws();
+    this.socket?.send(
       stringify({ event: `${resource}:${event}`, kind: "subscribe" })
     );
 
@@ -193,14 +229,14 @@ export class Entber {
   }
 
   async unsubscribe<T extends keyof API>(resource: T, event: Event) {
-    this.socket.send(
-      stringify({ event: `${resource}:${event}`, kind: "subscribe" })
+    this.socket?.send(
+      stringify({ event: `${resource}:${event}`, kind: "unsubscribe" })
     );
     this.callbacks?.delete(`${resource}:${event}`);
   }
 
   async unsubscribeAll() {
-    this.socket.send(stringify({ kind: "unsubscribe-all" }));
+    this.socket?.send(stringify({ kind: "unsubscribe-all" }));
     this.callbacks?.clear();
   }
 }

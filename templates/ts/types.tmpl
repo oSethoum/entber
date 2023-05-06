@@ -34,7 +34,7 @@ export interface {{ pascal .Name }}CreateInput{
 
 export interface {{ pascal .Name }}UpdateInput{
     {{ range .Fields }}
-        {{ get_name . }}{{- if is_slice . | not }}?{{ end }}: {{ get_type . }};
+        {{ get_name . }}?: {{ get_type . }};
     {{- end}}
     {{- range .Edges}}
         {{- if edge_field . | not }}

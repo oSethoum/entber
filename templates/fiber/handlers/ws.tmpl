@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/gofiber/websocket/v2"
+	"github.com/gofiber/fiber/v2"
 )
 
 type message struct {
@@ -101,9 +102,9 @@ func Notify(event string, data any) {
 	}
 }
 
-func Upgrade(c *fiber.Ctx) error {
-	if websocket.IsWebSocketUpgrade(c) {
-		return c.Next()
+func Upgrade(ctx *fiber.Ctx) error {
+	if websocket.IsWebSocketUpgrade(ctx) {
+		return ctx.Next()
 	}
 	return fiber.ErrUpgradeRequired
 }

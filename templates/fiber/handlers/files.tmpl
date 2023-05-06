@@ -1,0 +1,67 @@
+package handlers
+
+import (
+	"fmt"
+	"os"
+	"path"
+
+	"path/filepath"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/rs/xid"
+)
+
+func CreateFile(ctx *fiber.Ctx) error {
+	file, err := ctx.FormFile("file")
+	println("Uploading file")
+	if err != nil {
+		return StopWithError(ctx, err)
+	}
+	id := xid.New().String()
+	if id == "" {
+		return StopWithError(ctx, err)
+	}
+	os.Mkdir("./uploads", 0777)
+	filename := id + filepath.Ext(file.Filename)
+	err = ctx.SaveFile(file, fmt.Sprintf("./uploads/"+filename))
+	if err != nil {
+		return StopWithError(ctx, err, fiber.StatusInternalServerError)
+	}
+
+	return ctx.JSON(fiber.Map{
+		"code":   fiber.StatusCreated,
+		"status": "success",
+		"data": fiber.Map{
+			"filename": filename,
+		},
+	})
+}
+
+func FindFile(ctx *fiber.Ctx) error {
+	filename := ctx.Params("filename")
+	_, err := os.Stat("./uploads/" + filename)
+	if err != nil {
+		println(err.Error())
+	}
+	cwd, _ := os.Getwd()
+	filepath := path.Join(cwd, "./uploads/", filename)
+	return ctx.SendFile(filepath)
+}
+
+func UpdateFile(ctx *fiber.Ctx) error {
+	filename := ctx.Params("filename")
+	err := os.Remove(fmt.Sprintf("./uploads/%s", filename))
+	if err != nil {
+		return StopWithError(ctx, err)
+	}
+	return StopWithSuccess(ctx, "files:delete-one", nil)
+}
+
+func DeleteFile(ctx *fiber.Ctx) error {
+	filename := ctx.Params("filename")
+	err := os.Remove(fmt.Sprintf("./uploads/%s", filename))
+	if err != nil {
+		return StopWithError(ctx, err)
+	}
+	return StopWithSuccess(ctx, "files:delete-one", nil)
+}

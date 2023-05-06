@@ -3,13 +3,19 @@ package routes
 import (
     "{{ dir .Package }}/handlers"
     "github.com/gofiber/fiber/v2"
+    "github.com/gofiber/websocket/v2"
 )
 
 func routes(r fiber.Router) {
-    r.Get("/ws/listen", handlers.Upgrade)
-    r.Post("/upload", handlers.Upload)
-    r.Get("/download/:filename", handlers.Download)
-    
+    r.Use("/ws", handlers.Upgrade)
+	r.Get("/ws/listen", websocket.New(handlers.Listen))
+	
+    r.Get("/files/:filename", handlers.FindFile)
+	r.Post("/files", handlers.CreateFile)
+	r.Patch("/files/:filename", handlers.UpdateFile)
+	r.Delete("/files/:filename", handlers.DeleteFile)
+
+
     {{ range .Schemas }}
     {{ $r := plural .Name | camel  }}
     {{- $pn := pascal .Name}}
