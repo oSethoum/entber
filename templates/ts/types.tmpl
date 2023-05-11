@@ -140,7 +140,10 @@ export type API = {
     {{ end }}
 };
 
-export type Event =
+
+export type Event = `${keyof API}:${Action}`;
+
+export type Action =
   | "find-one"
   | "find-many"
   | "create-one"
@@ -149,3 +152,16 @@ export type Event =
   | "update-many"
   | "delete-one"
   | "delete-many";
+
+export type Kind =
+  | "subscribe"
+  | "unsubscribe"
+  | "unsubscribe-all"
+  | "connected"
+  | "notify";
+
+export type Message<T = any> = {
+  kind: Kind;
+  event: Event;
+  data: T;
+};

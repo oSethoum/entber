@@ -2,53 +2,58 @@ package entber
 
 import "log"
 
-func WithDB(config *DBConfig) option {
+func WithDB(config ...*DBConfig) option {
 	return func(e *extension) {
-		if config == nil {
-			config = new(DBConfig)
-		}
-		if config.Path == "" {
-			config.Path = "db"
-		}
-		if config.Driver == "" {
-			config.Driver = SQLite
+		if len(config) == 0 {
+			e.data.DBConfig = new(DBConfig)
 		} else {
-			if !in(config.Driver, []string{MySQL, SQLite, PostgreSQL}) {
-				log.Fatalln("driver", config.Driver, "is not supported")
+			e.data.DBConfig = config[0]
+		}
+		if e.data.DBConfig.Path == "" {
+			e.data.DBConfig.Path = "db"
+		}
+		if e.data.DBConfig.Driver == "" {
+			e.data.DBConfig.Driver = SQLite
+		} else {
+			if !in(e.data.DBConfig.Driver, []string{MySQL, SQLite, PostgreSQL}) {
+				log.Fatalln("driver", e.data.DBConfig.Driver, "is not supported")
 			}
 		}
-		switch config.Driver {
+		switch e.data.DBConfig.Driver {
 		case SQLite:
-			if config.Dsn == "" {
-				config.Dsn = "file:entber.sqlite?_fk=1&cache=shared"
+			if e.data.DBConfig.Dsn == "" {
+				e.data.DBConfig.Dsn = "file:entber.sqlite?_fk=1&cache=shared"
 			}
 		case MySQL:
-			if config.Dsn == "" {
-				config.Dsn = "<user>:<pass>@tcp(<host>:<port>)/<database>?parseTime=True"
+			if e.data.DBConfig.Dsn == "" {
+				e.data.DBConfig.Dsn = "<user>:<pass>@tcp(<host>:<port>)/<database>?parseTime=True"
 			}
 		case PostgreSQL:
-			if config.Dsn == "" {
-				config.Dsn = "host=<host> port=<port> user=<user> dbname=<database> password=<pass>"
+			if e.data.DBConfig.Dsn == "" {
+				e.data.DBConfig.Dsn = "host=<host> port=<port> user=<user> dbname=<database> password=<pass>"
 			}
 		}
-		e.data.DBConfig = config
 	}
 }
 
-func WithFiber() option {
+func WithFiber(config ...*FiberConfig) option {
 	return func(e *extension) {
+		if len(config) > 0 {
+			e.data.FiberConfig = config[0]
+		}
 		e.data.WithFiber = true
 	}
 }
 
-func WithTS(config *TSConfig) option {
+func WithTS(config ...*TSConfig) option {
 	return func(e *extension) {
-		if config == nil {
-			config = new(TSConfig)
+		if len(config) == 0 {
+			e.data.TSConfig = new(TSConfig)
+		} else {
+			e.data.TSConfig = config[0]
 		}
-		if config.ApiPath == "" {
-			config.ApiPath = "ts/"
+		if e.data.TSConfig.ApiPath == "" {
+			e.data.TSConfig.ApiPath = "ts/"
 		}
-		e.data.TSConfig = config
 	}
 }

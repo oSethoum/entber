@@ -5,78 +5,104 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gofiber/websocket/v2"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 )
 
-type message struct {
-	Kind    string `json:"kind,omitempty"`
+type Kind = string
+
+const (
+	Subscribe      Kind = "subscribe"
+	Unsubscribe    Kind = "unsubscribe"
+	UnsubscribeAll Kind = "unsubscribe-all"
+	Connected      Kind = "connected"
+	Notify         Kind = "notify"
+)
+
+type Message struct {
+	Kind    Kind   `json:"kind,omitempty"`
 	Event   string `json:"event,omitempty"`
 	Content any    `json:"content,omitempty"`
 }
 
-var subs = make(map[string]int)
-var bus = make(chan message)
+var subs = map[string]int{}
 var mutex = sync.Mutex{}
+var bus = make(chan Message)
 
-func safe(fn func()) {
+func increase(event string) {
 	mutex.Lock()
-	fn()
+	subs[event]++
+	fmt.Printf("increase \nsubs: %+v\n", subs)
+	mutex.Unlock()
+}
+
+func decrease(event string) {
+	mutex.Lock()
+	subs[event]--
+	if subs[event] == 0 {
+		delete(subs, event)
+	}
+	fmt.Printf("decrease \nsubs: %+v\n", subs)
 	mutex.Unlock()
 }
 
 func cleanup(events string) {
-	if strings.ReplaceAll(events, " ", "") == "" {
-		return
+	for _, ev := range strings.Split(events, " ") {
+		decrease(ev)
 	}
-	evs := strings.Split(strings.TrimPrefix(events, " "), " ")
-	safe(func() {
-		for _, ev := range evs {
-			subs[ev]--
-		}
-	})
+}
+
+func trim(s string) string {
+	trimFn := func(r rune) bool {
+		return r == ' '
+	}
+	s = strings.TrimLeftFunc(s, trimFn)
+	s = strings.TrimRightFunc(s, trimFn)
+	return s
 }
 
 func Listen(c *websocket.Conn) {
-	done := make(chan bool, 1)
 	events := ""
+	done := make(chan bool, 1)
 
-	c.WriteJSON(message{Kind: "connected", Content: "successfully connected"})
-
-	// read incoming messages
+	err := c.WriteJSON(Message{Kind: "connected"})
+	println(c, "Connected")
+	if err != nil {
+		go func() {
+			done <- true
+		}()
+	}
 	go func() {
+		m := new(Message)
 		for {
-			m := new(message)
 			err := c.ReadJSON(m)
-
 			if err != nil {
 				done <- true
-				break
-			} else {
-				switch m.Kind {
-				case "subscribe":
-					if !strings.Contains(events, m.Event) {
-						events = events + " " + m.Event
-						safe(func() { subs[m.Event]++ })
-						m.Content = "success"
-						fmt.Printf("client %p \n subscribe \n event %+v \n subs %+v \n", c, m.Event, subs)
-						c.WriteJSON(m)
+			}
+			fmt.Printf("%+v\n", m)
+			if m.Kind == Subscribe {
+				evs := strings.Split(trim(m.Event), " ")
+				for _, ev := range evs {
+					if !strings.Contains(events, ev) {
+						increase(ev)
+						events = trim(events + " " + ev)
 					}
-				case "unsubscribe":
-					if strings.Contains(events, m.Event) {
-						safe(func() { subs[m.Event]-- })
-						events = strings.ReplaceAll(events, m.Event, "")
-						fmt.Printf("client %p \n unsubscribe \n event %+v \n subs %+v \n", c, m.Event, subs)
-						m.Content = "success"
-						c.WriteJSON(m)
-					}
-				case "unsubscribe-all":
-					cleanup(events)
-					events = ""
-					m.Content = "success"
-					fmt.Printf("client %p \n unsubscribe-all \n events %+v \n subs %+v \n", c, events, subs)
-					c.WriteJSON(m)
 				}
+			}
+
+			if m.Kind == Unsubscribe {
+				evs := strings.Split(trim(m.Event), " ")
+				for _, ev := range evs {
+					if strings.Contains(events, ev) {
+						decrease(ev)
+						events = trim(strings.ReplaceAll(events, ev, ""))
+					}
+				}
+			}
+
+			if m.Kind == UnsubscribeAll {
+				cleanup(events)
+				events = ""
 			}
 		}
 	}()
@@ -84,21 +110,19 @@ func Listen(c *websocket.Conn) {
 	for {
 		select {
 		case m := <-bus:
-			fmt.Printf("client %p \n notify \n event %+v \n subs %+v \n", c, m.Event, subs)
 			c.WriteJSON(m)
 
 		case <-done:
 			cleanup(events)
-			println("Connection Closed")
+			println(c, "Disconnected")
 			return
 		}
 	}
-
 }
 
-func Notify(event string, data any) {
+func Broadcast(event string, data any) {
 	for i := 0; i < subs[event]; i++ {
-		bus <- message{Kind: "notify", Event: event, Content: data}
+		bus <- Message{Kind: Notify, Event: event, Content: data}
 	}
 }
 

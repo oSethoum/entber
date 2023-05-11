@@ -23,8 +23,8 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 			s = parseTemplate("fiber/routes/routes", e.data)
 			writeFile(path.Join("routes/routes.go"), s)
 
-			s = parseTemplate("fiber/handlers/util", e.data)
-			writeFile(path.Join("handlers/util.go"), s)
+			s = parseTemplate("fiber/handlers/helper", e.data)
+			writeFile(path.Join("handlers/helper.go"), s)
 
 			s = parseTemplate("fiber/handlers/ws", e.data)
 			writeFile(path.Join("handlers/ws.go"), s)

@@ -1,5 +1,4 @@
 import { API, ID, Response, Event } from "./types";
-import WebSocket from "reconnecting-websocket";
 
 type Callback<T = any> = (data: T) => void;
 
@@ -13,7 +12,7 @@ const parse = (data: string) => JSON.parse(data);
 
 export class Entber {
   private socket?: WebSocket;
-  private callbacks?: Map<string, Callback[]>;
+  private callbacks?: Map<Event, Callback[]>;
   private readonly url: string;
   static instance?: Entber;
   private accessToken?: string;
@@ -39,12 +38,12 @@ export class Entber {
 
   private ws() {
     if (this.socket) return;
+    this.callbacks = new Map<Event, Callback[]>();
     const wsUrl =
-      this.url.replace(/^http/, "ws") + "/ws/listen?accessToken=" + this.getAccessToken();
+      this.url.replace(/^http/, "ws") +
+      "/ws/listen?accessToken=" +
+      this.getAccessToken();
     this.socket = new WebSocket(wsUrl);
-    this.socket.onopen = () => {
-      this.callbacks = new Map<string, Callback[]>();
-    };
 
     this.socket.onerror = (e) => {
       console.error(e);
@@ -58,9 +57,8 @@ export class Entber {
 
       switch (message.kind) {
         case "notify":
-          this.callbacks
-            ?.get(message.event)
-            ?.forEach((callback) => callback(message.content));
+          const callbacks = this.callbacks?.get(message.event);
+          callbacks?.forEach((callback) => callback(message.content));
           break;
       }
     };
@@ -68,6 +66,9 @@ export class Entber {
 
   private constructor(url: string) {
     this.url = url.replace(/\/+$/, "");
+    import.meta.hot?.on("vite:beforeUpdate", () => {
+      this.socket?.close();
+    });
   }
 
   getUrl() {
@@ -212,31 +213,48 @@ export class Entber {
     return await this.request(url, { method: "DELETE" });
   }
 
-  async subscribe<T extends keyof API>(
-    resource: T,
-    event: Event,
-    callback: Callback
-  ) {
+  private send(message: any) {
     this.ws();
-    this.socket?.send(
-      stringify({ event: `${resource}:${event}`, kind: "subscribe" })
-    );
-
-    this.callbacks?.set(`${resource}:${event}`, [
-      ...(this.callbacks.get(`${resource}${event}`) || []),
-      callback,
-    ]);
+    if (this.socket) {
+      if (this.socket.readyState != WebSocket.OPEN) {
+        this.socket!.onopen = () => {
+          this.socket?.send(stringify(message));
+        };
+      } else {
+        this.socket?.send(stringify(message));
+      }
+    } else {
+      throw new Error("Error Connecting to websocket");
+    }
   }
 
-  async unsubscribe<T extends keyof API>(resource: T, event: Event) {
-    this.socket?.send(
-      stringify({ event: `${resource}:${event}`, kind: "unsubscribe" })
-    );
-    this.callbacks?.delete(`${resource}:${event}`);
+  async subscribe<T extends keyof API>(events: Event[], callback: Callback) {
+    const evs = events.filter((event, index) => events.indexOf(event) == index);
+    this.send({ event: evs.join(" "), kind: "subscribe" });
+    evs.forEach((ev) => {
+      this.callbacks?.set(ev, [...(this.callbacks?.get(ev) || []), callback]);
+    });
+  }
+
+  async unsubscribe<T extends keyof API>(events: Event[], callback?: Callback) {
+    const evs = events.filter((event, index) => events.indexOf(event) == index);
+    this.send({ event: evs.join(" "), kind: "unsubscribe" });
+    if (callback) {
+      evs.forEach((ev) => {
+        this.callbacks?.set(
+          ev,
+          this.callbacks?.get(ev)?.filter((cb) => cb != callback) || []
+        );
+      });
+    } else {
+      evs.forEach((ev) => {
+        this.callbacks?.set(ev, []);
+      });
+    }
   }
 
   async unsubscribeAll() {
-    this.socket?.send(stringify({ kind: "unsubscribe-all" }));
+    this.send({ kind: "unsubscribe-all" });
     this.callbacks?.clear();
   }
 }

@@ -12,9 +12,9 @@ import (
 
 func main() {
 	ex := entber.NewExtension(
-		entber.WithDB(nil),
+		entber.WithDB(),
 		entber.WithFiber(),
-		entber.WithTS(nil),
+		entber.WithTS(),
 	)
 	options := []entc.Option{
 		entc.Extensions(ex),

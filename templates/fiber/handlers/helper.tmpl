@@ -1,0 +1,34 @@
+package handlers
+
+import "github.com/gofiber/fiber/v2"
+
+func Error(ctx *fiber.Ctx, err any, statusCode ...int) error {
+	code := 400
+	if len(statusCode) > 0 {
+		code = statusCode[0]
+	}
+	response := fiber.Map{
+		"status": "error",
+		"code":   code,
+	}
+	if err != nil {
+		response["error"] = err
+	}
+	return ctx.Status(code).JSON(response)
+}
+
+func Success(ctx *fiber.Ctx, event string, data any, statusCode ...int) error {
+	code := 200
+	if len(statusCode) > 0 {
+		code = statusCode[0]
+	}
+	response := fiber.Map{
+		"code":   code,
+		"status": "success",
+	}
+	if data != nil {
+		response["data"] = data
+	}
+	go Broadcast(event, data)
+	return ctx.JSON(response)
+}

@@ -24,9 +24,10 @@ type option = func(*extension)
 
 type data struct {
 	*gen.Graph
-	DBConfig  *DBConfig
-	TSConfig  *TSConfig
-	WithFiber bool
+	DBConfig    *DBConfig
+	TSConfig    *TSConfig
+	FiberConfig *FiberConfig
+	WithFiber   bool
 
 	CurrentSchema *load.Schema
 }
@@ -38,7 +39,11 @@ type DBConfig struct {
 }
 
 type TSConfig struct {
-	ApiPath string
+	ApiPath   string
+	TypesOnly bool
+}
+
+type FiberConfig struct {
 }
 
 type comparable interface {
