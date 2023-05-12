@@ -18,9 +18,9 @@ func Find{{ $pName }}(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	{{ $cName }}, err := db.Client.{{ $pName }}.Get(ctx.UserContext(), id)
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:find-one", {{ $cName }})
+	return Success(ctx, "{{ $cNames }}:find-one", {{ $cName }})
 }
 
 func Find{{ $pNames }}(ctx *fiber.Ctx) error {
@@ -29,40 +29,40 @@ func Find{{ $pNames }}(ctx *fiber.Ctx) error {
 	if q != "" {
 		err := json.Unmarshal([]byte(q), query)
 		if err != nil {
-			return StopWithError(ctx, err)
+			return Error(ctx, err.Error())
 		}
 	}
 	{{ $cNames }}, err := db.Client.{{ $pName }}.Query().SetInput(query).All(ctx.UserContext())
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:find-many", {{ $cNames }})
+	return Success(ctx, "{{ $cNames }}:find-many", {{ $cNames }})
 }
 
 func Create{{ $pName }}(ctx *fiber.Ctx) error {
 	body := new(ent.{{ $pName }}CreateInput)
 	err := ctx.BodyParser(body)
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
 	{{ $cName }}, err := db.Client.{{ $pName }}.Create().SetInput(body).Save(ctx.UserContext())
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:create-one", {{ $cName }}, fiber.StatusCreated)
+	return Success(ctx, "{{ $cNames }}:create-one", {{ $cName }}, fiber.StatusCreated)
 }
 
 func Create{{ $pNames }}(ctx *fiber.Ctx) error {
 	body := []*ent.{{ $pName }}CreateInput{}
 	err := ctx.BodyParser(&body)
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
 	if len(body) == 0 {
-		return StopWithError(ctx, errors.New("empty array body"))
+		return Error(ctx, errors.New("empty array body"))
 	}
 	builders := []*ent.{{ $pName }}Create{}
 	for _, b := range body {
@@ -70,9 +70,9 @@ func Create{{ $pNames }}(ctx *fiber.Ctx) error {
 	}
 	{{ $cNames }}, err := db.Client.{{ $pName }}.CreateBulk(builders...).Save(ctx.UserContext())
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:create-many", {{ $cNames }}, fiber.StatusCreated)
+	return Success(ctx, "{{ $cNames }}:create-many", {{ $cNames }}, fiber.StatusCreated)
 }
 
 func Update{{ $pName }}(ctx *fiber.Ctx) error {
@@ -80,13 +80,13 @@ func Update{{ $pName }}(ctx *fiber.Ctx) error {
 	body := new(ent.{{ $pName }}UpdateInput)
 	err := ctx.BodyParser(body)
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
 	{{ $cName }}, err := db.Client.{{ $pName }}.UpdateOneID(id).SetInput(body).Save(ctx.UserContext())
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:update-one", {{ $cName }})
+	return Success(ctx, "{{ $cNames }}:update-one", {{ $cName }})
 }
 
 func Update{{ $pNames }}(ctx *fiber.Ctx) error {
@@ -96,33 +96,33 @@ func Update{{ $pNames }}(ctx *fiber.Ctx) error {
 	if w != "" {
 		err := json.Unmarshal([]byte(w), where)
 		if err != nil {
-			return StopWithError(ctx, err)
+			return Error(ctx, err.Error())
 		}
 		predicate, err := where.P()
 		if err != nil {
-			StopWithError(ctx, err)
+			Error(ctx, err.Error())
 		}
 		action = action.Where(predicate)
 	}
 	body := new(ent.{{ $pName }}UpdateInput)
 	err := ctx.BodyParser(body)
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
 	_, err = action.SetInput(body).Save(ctx.UserContext())
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:update-many", nil)
+	return Success(ctx, "{{ $cNames }}:update-many", nil)
 }
 
 func Delete{{ $pName }}(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	err := db.Client.{{ $pName }}.DeleteOneID(id).Exec(ctx.UserContext())
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:delete-one", nil)
+	return Success(ctx, "{{ $cNames }}:delete-one", nil)
 }
 
 func Delete{{ $pNames }}(ctx *fiber.Ctx) error {
@@ -132,17 +132,17 @@ func Delete{{ $pNames }}(ctx *fiber.Ctx) error {
 	if w != "" {
 		err := json.Unmarshal([]byte(w), where)
 		if err != nil {
-			return StopWithError(ctx, err)
+			return Error(ctx, err.Error())
 		}
 		predicate, err := where.P()
 		if err != nil {
-			return StopWithError(ctx, err)
+			return Error(ctx, err.Error())
 		}
 		action = action.Where(predicate)
 	}
 	_, err := action.Exec(ctx.UserContext())
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
-	return StopWithSuccess(ctx, "{{ $cNames }}:delete-many", nil)
+	return Success(ctx, "{{ $cNames }}:delete-many", nil)
 }

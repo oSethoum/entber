@@ -15,26 +15,19 @@ func CreateFile(ctx *fiber.Ctx) error {
 	file, err := ctx.FormFile("file")
 	println("Uploading file")
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
 	id := xid.New().String()
 	if id == "" {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
 	os.Mkdir("./uploads", 0777)
 	filename := id + filepath.Ext(file.Filename)
 	err = ctx.SaveFile(file, fmt.Sprintf("./uploads/"+filename))
 	if err != nil {
-		return StopWithError(ctx, err, fiber.StatusInternalServerError)
+		return Error(ctx, err, fiber.StatusInternalServerError)
 	}
-
-	return ctx.JSON(fiber.Map{
-		"code":   fiber.StatusCreated,
-		"status": "success",
-		"data": fiber.Map{
-			"filename": filename,
-		},
-	})
+	return Success(ctx, "files:create-one", fiber.Map{"filename": filename}, fiber.StatusCreated)
 }
 
 func FindFile(ctx *fiber.Ctx) error {
@@ -52,16 +45,31 @@ func UpdateFile(ctx *fiber.Ctx) error {
 	filename := ctx.Params("filename")
 	err := os.Remove(fmt.Sprintf("./uploads/%s", filename))
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
-	return StopWithSuccess(ctx, "files:delete-one", nil)
+	file, err := ctx.FormFile("file")
+	println("Uploading file")
+	if err != nil {
+		return Error(ctx, err.Error())
+	}
+	id := xid.New().String()
+	if id == "" {
+		return Error(ctx, err.Error())
+	}
+	os.Mkdir("./uploads", 0777)
+	filename = id + filepath.Ext(file.Filename)
+	err = ctx.SaveFile(file, fmt.Sprintf("./uploads/"+filename))
+	if err != nil {
+		return Error(ctx, err, fiber.StatusInternalServerError)
+	}
+	return Success(ctx, "files:update-one", fiber.Map{"filename": filename})
 }
 
 func DeleteFile(ctx *fiber.Ctx) error {
 	filename := ctx.Params("filename")
 	err := os.Remove(fmt.Sprintf("./uploads/%s", filename))
 	if err != nil {
-		return StopWithError(ctx, err)
+		return Error(ctx, err.Error())
 	}
-	return StopWithSuccess(ctx, "files:delete-one", nil)
+	return Success(ctx, "files:delete-one", nil)
 }
