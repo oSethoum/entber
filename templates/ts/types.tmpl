@@ -165,3 +165,5 @@ export type Message<T = any> = {
   event: Event;
   data: T;
 };
+
+export type Callback<T = any> = (data: T) => void;

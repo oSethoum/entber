@@ -1,11 +1,4 @@
-import { API, ID, Response, Event } from "./types";
-
-type Callback<T = any> = (data: T) => void;
-
-export interface EntberInit {
-  headers?: HeadersInit;
-  mode?: RequestMode;
-}
+import { API, ID, Response, Event, Callback } from "./types";
 
 const stringify = (data: any) => JSON.stringify(data);
 const parse = (data: string) => JSON.parse(data);
@@ -15,19 +8,6 @@ export class Entber {
   private callbacks?: Map<Event, Callback[]>;
   private readonly url: string;
   static instance?: Entber;
-  private accessToken?: string;
-  getAccessToken = () => {
-    if (!this.accessToken) {
-      this.accessToken = localStorage.getItem("accessToken") || "";
-    }
-    return this.accessToken;
-  };
-
-  cleanup() {
-    localStorage.removeItem("accessToken");
-    this.accessToken = undefined;
-    this.socket?.close();
-  }
 
   static getInstance(url: string) {
     if (!Entber.instance) {
@@ -39,10 +19,7 @@ export class Entber {
   private ws() {
     if (this.socket) return;
     this.callbacks = new Map<Event, Callback[]>();
-    const wsUrl =
-      this.url.replace(/^http/, "ws") +
-      "/ws/listen?accessToken=" +
-      this.getAccessToken();
+    const wsUrl = this.url.replace(/^http/, "ws") + "/ws/listen";
     this.socket = new WebSocket(wsUrl);
 
     this.socket.onerror = (e) => {
@@ -53,7 +30,6 @@ export class Entber {
 
     this.socket.onmessage = (e) => {
       const message = parse(e.data);
-      console.log(message);
 
       switch (message.kind) {
         case "notify":
@@ -79,17 +55,16 @@ export class Entber {
     const method = init?.method || "GET";
     const headers = {
       ...init?.headers,
-      authorization: this.getAccessToken(),
     };
 
     let response = await fetch(`${this.url}${url}`, {
       method,
       ...init,
       headers,
+      credentials: "include",
     });
 
     const json = await response.json();
-    console.log(json);
     return json;
   }
 
@@ -228,7 +203,7 @@ export class Entber {
     }
   }
 
-  async subscribe<T extends keyof API>(events: Event[], callback: Callback) {
+  subscribe(events: Event[], callback: Callback) {
     const evs = events.filter((event, index) => events.indexOf(event) == index);
     this.send({ event: evs.join(" "), kind: "subscribe" });
     evs.forEach((ev) => {
@@ -236,7 +211,7 @@ export class Entber {
     });
   }
 
-  async unsubscribe<T extends keyof API>(events: Event[], callback?: Callback) {
+  unsubscribe(events: Event[], callback?: Callback) {
     const evs = events.filter((event, index) => events.indexOf(event) == index);
     this.send({ event: evs.join(" "), kind: "unsubscribe" });
     if (callback) {
@@ -253,7 +228,7 @@ export class Entber {
     }
   }
 
-  async unsubscribeAll() {
+  unsubscribeAll() {
     this.send({ kind: "unsubscribe-all" });
     this.callbacks?.clear();
   }
