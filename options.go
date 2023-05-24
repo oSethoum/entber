@@ -57,3 +57,9 @@ func WithTS(config ...*TSConfig) option {
 		}
 	}
 }
+
+func WithAppConfig(config *AppConfig) option {
+	return func(e *extension) {
+		e.data.AppConfig = config
+	}
+}

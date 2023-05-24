@@ -28,6 +28,7 @@ type data struct {
 	TSConfig    *TSConfig
 	FiberConfig *FiberConfig
 	WithFiber   bool
+	AppConfig   *AppConfig
 
 	CurrentSchema *load.Schema
 }
@@ -44,6 +45,10 @@ type TSConfig struct {
 }
 
 type FiberConfig struct {
+}
+
+type AppConfig struct {
+	Path string
 }
 
 type comparable interface {
