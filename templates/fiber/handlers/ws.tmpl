@@ -2,133 +2,134 @@ package handlers
 
 import (
 	"fmt"
-	"strings"
+	"server/utils"
 	"sync"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/websocket/v2"
+	"github.com/gofiber/contrib/websocket"
 )
 
-type Kind = string
+type (
+	Action = string
+	Kind   = string
 
-const (
-	Subscribe      Kind = "subscribe"
-	Unsubscribe    Kind = "unsubscribe"
-	UnsubscribeAll Kind = "unsubscribe-all"
-	Connected      Kind = "connected"
-	Notify         Kind = "notify"
+	InMessage struct {
+		Action Action   `json:"action,omitempty"`
+		Events []string `json:"events,omitempty"`
+	}
+
+	OutMessage struct {
+		Kind  Kind   `json:"kind,omitempty"`
+		Event string `json:"event,omitempty"`
+		Error any    `json:"error,omitempty"`
+		Data  any    `json:"data,omitempty"`
+	}
+
+	BusMessage struct {
+		Event string `json:"event,omitempty"`
+		Data  any    `json:"data,omitempty"`
+	}
 )
 
-type Message struct {
-	Kind    Kind   `json:"kind,omitempty"`
-	Event   string `json:"event,omitempty"`
-	Content any    `json:"content,omitempty"`
-}
+var (
+	ActionSubscribe      = Action("subscribe")
+	ActionUnsubscribe    = Action("unsubscribe")
+	ActionUnsubscribeAll = Action("unsubscribeAll")
+	ActionDisconnect     = Action("disconnect")
 
-var subs = map[string]int{}
-var mutex = sync.Mutex{}
-var bus = make(chan Message)
+	KindConnected    = Kind("connected")
+	KindDisconnected = Kind("disconnected")
+	KindNotify       = Kind("notify")
+	KindWarning      = Kind("warning")
+	KindError        = Kind("error")
 
-func increase(event string) {
+	mutex = sync.Mutex{}
+	subs  = make(map[string]map[*websocket.Conn]bool, 0)
+)
+
+func subscribe(events []string, c *websocket.Conn) {
 	mutex.Lock()
-	subs[event]++
-	fmt.Printf("increase \nsubs: %+v\n", subs)
+	for _, event := range events {
+		m, ok := subs[event]
+		if !ok {
+			m = make(map[*websocket.Conn]bool)
+		}
+		m[c] = true
+		subs[event] = m
+	}
 	mutex.Unlock()
 }
 
-func decrease(event string) {
+func unsubscribe(events []string, c *websocket.Conn) {
 	mutex.Lock()
-	subs[event]--
-	if subs[event] == 0 {
-		delete(subs, event)
-	}
-	fmt.Printf("decrease \nsubs: %+v\n", subs)
-	mutex.Unlock()
-}
-
-func cleanup(events string) {
-	for _, ev := range strings.Split(events, " ") {
-		decrease(ev)
-	}
-}
-
-func trim(s string) string {
-	trimFn := func(r rune) bool {
-		return r == ' '
-	}
-	s = strings.TrimLeftFunc(s, trimFn)
-	s = strings.TrimRightFunc(s, trimFn)
-	return s
-}
-
-func Listen(c *websocket.Conn) {
-	events := ""
-	done := make(chan bool, 1)
-
-	err := c.WriteJSON(Message{Kind: "connected"})
-	println(c, "Connected")
-	if err != nil {
-		go func() {
-			done <- true
-		}()
-	}
-	go func() {
-		m := new(Message)
-		for {
-			err := c.ReadJSON(m)
-			if err != nil {
-				done <- true
-			}
-			fmt.Printf("%+v\n", m)
-			if m.Kind == Subscribe {
-				evs := strings.Split(trim(m.Event), " ")
-				for _, ev := range evs {
-					if !strings.Contains(events, ev) {
-						increase(ev)
-						events = trim(events + " " + ev)
-					}
-				}
-			}
-
-			if m.Kind == Unsubscribe {
-				evs := strings.Split(trim(m.Event), " ")
-				for _, ev := range evs {
-					if strings.Contains(events, ev) {
-						decrease(ev)
-						events = trim(strings.ReplaceAll(events, ev, ""))
-					}
-				}
-			}
-
-			if m.Kind == UnsubscribeAll {
-				cleanup(events)
-				events = ""
+	for _, event := range events {
+		m, ok := subs[event]
+		if ok {
+			delete(m, c)
+			if len(m) == 0 {
+				delete(subs, event)
+			} else {
+				subs[event] = m
 			}
 		}
-	}()
+	}
+	mutex.Unlock()
+}
 
+func Subscribe(c *websocket.Conn) {
+	c.WriteJSON(&OutMessage{
+		Kind: KindConnected,
+	})
+	events := []string{}
 	for {
-		select {
-		case m := <-bus:
-			c.WriteJSON(m)
-
-		case <-done:
-			cleanup(events)
-			println(c, "Disconnected")
+		m := new(InMessage)
+		err := c.ReadJSON(m)
+		if err != nil {
+			if websocket.IsCloseError(err) || websocket.IsUnexpectedCloseError(err) {
+				unsubscribe(events, c)
+				return
+			}
+			c.WriteJSON(OutMessage{
+				Kind:  KindError,
+				Error: err.Error(),
+			})
+			continue
+		}
+		switch m.Action {
+		case ActionSubscribe:
+			var appended = []string{}
+			events, appended = utils.AppendValues(events, m.Events...)
+			log(c, m.Action, appended)
+			subscribe(appended, c)
+		case ActionUnsubscribe:
+			var removed = []string{}
+			events, removed = utils.RemoveValues(events, m.Events...)
+			log(c, m.Action, removed)
+			unsubscribe(removed, c)
+		case ActionUnsubscribeAll:
+			unsubscribe(events, c)
+			events = []string{}
+		case ActionDisconnect:
+			unsubscribe(events, c)
 			return
 		}
 	}
 }
 
 func Broadcast(event string, data any) {
-	for i := 0; i < subs[event]; i++ {
-		bus <- Message{Kind: Notify, Event: event, Content: data}
+	mutex.Lock()
+	fmt.Printf("%+v\n", subs)
+	if m, ok := subs[event]; ok {
+		for c := range m {
+			go c.WriteJSON(OutMessage{
+				Kind:  KindNotify,
+				Event: event,
+				Data:  data,
+			})
+		}
 	}
+	mutex.Unlock()
 }
 
-func Upgrade(ctx *fiber.Ctx) error {
-	if websocket.IsWebSocketUpgrade(ctx) {
-		return ctx.Next()
-	}
-	return fiber.ErrUpgradeRequired
+func log(c *websocket.Conn, action Action, events []string) {
+	fmt.Printf("client: %p \nAction: %v \nEvents %+v", c, action, events)
 }
