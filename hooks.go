@@ -34,8 +34,8 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 			s = parseTemplate("fiber/handlers/ws", e.data)
 			writeFile(path.Join(destination, "handlers/ws.go"), s)
 
-			s = parseTemplate("fiber/handlers/files", e.data)
-			writeFile(path.Join(destination, "handlers/files.go"), s)
+			s = parseTemplate("fiber/utils/utils", e.data)
+			writeFile(path.Join(destination, "utils/utils.go"), s)
 
 			for _, schema := range g.Schemas {
 				e.data.CurrentSchema = schema

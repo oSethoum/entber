@@ -1,0 +1,80 @@
+package utils
+
+import (
+    "context"
+    "golang.org/x/crypto/bcrypt"
+    "github.com/gofiber/fiber/v2"
+)
+
+func Value[T any](value T, array []T) T {
+	if len(array) > 0 {
+		return array[0]
+	}
+	return value
+}
+
+func AppendValues[T comparable](array []T, values ...T) ([]T, []T) {
+	appended := []T{}
+	for _, value := range values {
+		if !InArray(array, value) {
+			appended = append(appended, value)
+		}
+	}
+	array = append(array, appended...)
+	return array, appended
+}
+
+func RemoveValues[T comparable](array []T, values ...T) ([]T, []T) {
+	newArray := []T{}
+	removed := []T{}
+	for _, value := range array {
+		if !InArray(values, value) {
+			newArray = append(newArray, value)
+		} else {
+			removed = append(removed, value)
+		}
+	}
+	return newArray, removed
+}
+
+func InArray[T comparable](array []T, value T) bool {
+	for _, v := range array {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 6)
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
+type PermissionsKey struct {
+	key string
+}
+
+func SetPermissions(parent context.Context, values map[string]string) context.Context {
+	return context.WithValue(parent, PermissionsKey{"permissions"}, values)
+}
+
+func GetPermissions(ctx context.Context) map[string]string {
+	return ctx.Value(PermissionsKey{"permissions"}).(map[string]string)
+}
+
+func ExtractToken(c *fiber.Ctx) (string, bool) {
+	token := c.GetReqHeaders()["token"]
+	if token == "" {
+		token = c.Cookies("token")
+	}
+	if token == "" {
+		return "", false
+	}
+	return token, true
+}

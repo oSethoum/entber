@@ -20,7 +20,7 @@ func Find{{ $pName }}(ctx *fiber.Ctx) error {
 	if err != nil {
 		return Error(ctx, err.Error())
 	}
-	return Success(ctx, "{{ $cNames }}:find-one", {{ $cName }})
+	return Success(ctx, {{ $cName }})
 }
 
 func Find{{ $pNames }}(ctx *fiber.Ctx) error {
@@ -36,7 +36,7 @@ func Find{{ $pNames }}(ctx *fiber.Ctx) error {
 	if err != nil {
 		return Error(ctx, err.Error())
 	}
-	return Success(ctx, "{{ $cNames }}:find-many", {{ $cNames }})
+	return Success(ctx, {{ $cNames }})
 }
 
 func Create{{ $pName }}(ctx *fiber.Ctx) error {
@@ -52,7 +52,7 @@ func Create{{ $pName }}(ctx *fiber.Ctx) error {
 	if err != nil {
 		return Error(ctx, err.Error())
 	}
-	return Success(ctx, "{{ $cNames }}:create-one", {{ $cName }}, fiber.StatusCreated)
+	return Success(ctx, {{ $cName }}, fiber.StatusCreated)
 }
 
 func Create{{ $pNames }}(ctx *fiber.Ctx) error {
@@ -72,7 +72,7 @@ func Create{{ $pNames }}(ctx *fiber.Ctx) error {
 	if err != nil {
 		return Error(ctx, err.Error())
 	}
-	return Success(ctx, "{{ $cNames }}:create-many", {{ $cNames }}, fiber.StatusCreated)
+	return Success(ctx, {{ $cNames }}, fiber.StatusCreated)
 }
 
 func Update{{ $pName }}(ctx *fiber.Ctx) error {
@@ -86,7 +86,7 @@ func Update{{ $pName }}(ctx *fiber.Ctx) error {
 	if err != nil {
 		return Error(ctx, err.Error())
 	}
-	return Success(ctx, "{{ $cNames }}:update-one", {{ $cName }})
+	return Success(ctx, {{ $cName }})
 }
 
 func Update{{ $pNames }}(ctx *fiber.Ctx) error {
@@ -113,7 +113,7 @@ func Update{{ $pNames }}(ctx *fiber.Ctx) error {
 	if err != nil {
 		return Error(ctx, err.Error())
 	}
-	return Success(ctx, "{{ $cNames }}:update-many", nil)
+	return Success(ctx, nil)
 }
 
 func Delete{{ $pName }}(ctx *fiber.Ctx) error {
@@ -122,7 +122,7 @@ func Delete{{ $pName }}(ctx *fiber.Ctx) error {
 	if err != nil {
 		return Error(ctx, err.Error())
 	}
-	return Success(ctx, "{{ $cNames }}:delete-one", nil)
+	return Success(ctx, nil)
 }
 
 func Delete{{ $pNames }}(ctx *fiber.Ctx) error {
@@ -144,5 +144,5 @@ func Delete{{ $pNames }}(ctx *fiber.Ctx) error {
 	if err != nil {
 		return Error(ctx, err.Error())
 	}
-	return Success(ctx, "{{ $cNames }}:delete-many", nil)
+	return Success(ctx, nil)
 }

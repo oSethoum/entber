@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"fmt"
-	"server/utils"
+	"{{ dir .Package }}/utils"
 	"sync"
 
 	"github.com/gofiber/contrib/websocket"
+	"github.com/gofiber/fiber/v2"
 )
 
 type (
@@ -128,6 +129,13 @@ func Broadcast(event string, data any) {
 		}
 	}
 	mutex.Unlock()
+}
+
+func Upgrade(c *fiber.Ctx) error {
+	if websocket.IsWebSocketUpgrade(c) {
+		return c.Next()
+	}
+	return fiber.ErrUpgradeRequired
 }
 
 func log(c *websocket.Conn, action Action, events []string) {
