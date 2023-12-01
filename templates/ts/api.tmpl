@@ -68,34 +68,6 @@ export class Entber {
     return json;
   }
 
-  async findFile(filename: string) {
-    return await this.request("/file/" + filename);
-  }
-
-  async createFile(file: File) {
-    const formData = new FormData();
-    formData.append("file", file);
-    return await this.request("/files", {
-      method: "POST",
-      body: formData,
-    });
-  }
-
-  async updateFile(filename: string, file: File) {
-    const formData = new FormData();
-    formData.append("file", file);
-    return await this.request("/files/" + filename, {
-      method: "PATCH",
-      body: formData,
-    });
-  }
-
-  async deleteFile(filename: string) {
-    return await this.request("/files/" + filename, {
-      method: "DELETE",
-    });
-  }
-
   async findOne<T extends keyof API>(
     resource: T,
     id: ID
