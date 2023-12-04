@@ -1,0 +1,31 @@
+{{ $g := . }}
+
+{{ range $s := .Schemas }}
+
+export interface {{ pascal .Name }} {
+    {{ range .Fields }}
+        {{ get_name . | snake }}{{- if or .Optional .Nillable }}?{{- end}}: {{ get_type . }};
+    {{- end}}
+    {{- $ed := len .Edges }}
+    {{- if gt $ed 0 }}
+    edges:{
+    {{- range .Edges }}
+        {{ snake .Name }}?: {{ pascal .Type }} {{- if not .Unique}}[]{{- end}};
+    {{- end}}
+    }
+    {{- end}}
+}
+
+export interface {{ pascal .Name }}CreateInput{
+    {{ range .Fields }}
+        {{ get_name . | snake }}{{- if or .Optional .Nillable .Default }}?{{- end}}: {{ get_type . }};
+    {{- end}}
+}
+
+export interface {{ pascal .Name }}UpdateInput{
+    {{ range .Fields }}
+        {{ get_name . | snake}}?: {{ get_type . }};
+    {{- end}}
+}
+
+{{ end -}}

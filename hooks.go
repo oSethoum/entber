@@ -50,10 +50,15 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 		}
 
 		if e.data.TSConfig != nil {
-			s := parseTemplate("ts/api", e.data)
-			writeFile(path.Join(e.data.TSConfig.ApiPath, "api.ts"), s)
-			s = parseTemplate("ts/types", e.data)
-			writeFile(path.Join(e.data.TSConfig.ApiPath, "types.ts"), s)
+			if e.data.TSConfig.TypesOnly {
+				s := parseTemplate("ts/types_only", e.data)
+				writeFile(path.Join(e.data.TSConfig.ApiPath, "types.ts"), s)
+			} else {
+				s := parseTemplate("ts/api", e.data)
+				writeFile(path.Join(e.data.TSConfig.ApiPath, "api.ts"), s)
+				s = parseTemplate("ts/types", e.data)
+				writeFile(path.Join(e.data.TSConfig.ApiPath, "types.ts"), s)
+			}
 		}
 
 		return next.Generate(g)
