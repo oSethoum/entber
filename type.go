@@ -26,6 +26,7 @@ type data struct {
 	*gen.Graph
 	DBConfig    *DBConfig
 	TSConfig    *TSConfig
+	EntConfig   *EntConfig
 	FiberConfig *FiberConfig
 	WithFiber   bool
 	AppConfig   *AppConfig
@@ -44,6 +45,13 @@ type TSConfig struct {
 	TypesOnly bool
 }
 
+type EntConfig struct {
+	Input bool
+	Edges bool
+	Query bool
+	Error bool
+}
+
 type FiberConfig struct {
 }
 
@@ -56,7 +64,7 @@ type comparable interface {
 }
 
 var go_ts = map[string]string{
-	"time.Time": "Date",
+	"time.Time": "string",
 	"bool":      "boolean",
 	"int":       "number",
 	"uint":      "number",

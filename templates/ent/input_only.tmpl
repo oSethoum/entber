@@ -1,0 +1,73 @@
+package ent
+
+{{ $g := .}}
+
+{{ $imps := imports .Graph true }}
+{{ $imps_len := len $imps }}
+
+{{- if gt $imps_len 0 }}
+import (
+    {{ range $imps}}
+    "{{ . }}"
+    {{ end }}
+)
+{{- end}}
+
+{{- range .Schemas }}
+    type {{ .Name }}CreateInput struct {
+        {{- range .Fields }}
+            {{ pascal .Name }} {{ if null_field_create . -}}*{{- end -}}{{ extract_type . }} `{{ tag . }}`
+        {{- end }}
+    }
+
+    func (i *{{ .Name }}CreateInput) Mutate(m *{{ .Name }}Mutation) {
+        {{- range .Fields }}
+            {{- if null_field_create .}} 
+            if v := i.{{ pascal .Name }}; v != nil {
+            m.Set{{pascal .Name}}(*v)
+            }
+            {{- else }}
+            m.Set{{pascal .Name}}(i.{{ pascal .Name }})
+            {{- end }}
+        {{- end }}
+    }
+
+    func (c *{{ .Name }}Create) SetInput(i *{{ .Name }}CreateInput) *{{ .Name }}Create {
+        i.Mutate(c.Mutation())
+        return c
+    }
+    
+    type {{ .Name }}UpdateInput struct {
+        {{- range .Fields }}
+            {{ pascal .Name }} {{ if null_field_update . -}}*{{- end -}} {{ extract_type . }} `{{ tag . }}`
+        {{- end }}
+        {{- range .Edges }}
+    {{- end}}
+    }
+
+    func (i *{{ .Name }}UpdateInput) Mutate(m *{{ .Name }}Mutation) {
+    {{- range .Fields }}
+        {{- if null_field_update .}} 
+        if v := i.{{ pascal .Name }}; v != nil {
+        m.Set{{pascal .Name}}(*v)
+        }
+        {{ else if is_slice . }}
+        if len(i.{{ pascal .Name }}) > 0 {
+            m.Set{{pascal .Name}}(i.{{ pascal .Name }})
+        }
+        {{ else -}}
+        m.Set{{pascal .Name}}(i.{{ pascal .Name }})
+        {{- end }}
+    {{- end -}}
+    }
+
+    func (u *{{ .Name }}Update) SetInput(i *{{ .Name }}UpdateInput) *{{ .Name }}Update {
+        i.Mutate(u.Mutation())
+        return u
+    }
+    
+    func (uo *{{ .Name }}UpdateOne) SetInput(i *{{ .Name }}UpdateInput) *{{ .Name }}UpdateOne {
+        i.Mutate(uo.Mutation())
+        return uo
+    }
+{{- end }}

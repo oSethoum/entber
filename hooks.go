@@ -15,17 +15,21 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 			destination = path.Join(destination, e.data.AppConfig.Path)
 		}
 
-		s := parseTemplate("ent/input", e.data)
-		writeFile(path.Join(destination, "ent/input.go"), s)
+		if e.data.EntConfig.Edges {
+			writeFile(path.Join(destination, "ent/input.go"), parseTemplate("ent/input", e.data))
 
-		s = parseTemplate("ent/query", e.data)
+		} else {
+			writeFile(path.Join(destination, "ent/input_only.go"), parseTemplate("ent/input", e.data))
+		}
+
+		s := parseTemplate("ent/query", e.data)
 		writeFile(path.Join(destination, "ent/query.go"), s)
 
 		s = parseTemplate("ent/errors", e.data)
 		writeFile(path.Join(destination, "ent/errors.go"), s)
 
 		if e.data.WithFiber {
-			s = parseTemplate("fiber/routes/routes", e.data)
+			s := parseTemplate("fiber/routes/routes", e.data)
 			writeFile(path.Join(destination, "routes/routes.go"), s)
 
 			s = parseTemplate("fiber/handlers/helper", e.data)
