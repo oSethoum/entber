@@ -19,7 +19,7 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 			writeFile(path.Join(destination, "ent/input.go"), parseTemplate("ent/input", e.data))
 
 		} else {
-			writeFile(path.Join(destination, "ent/input_only.go"), parseTemplate("ent/input", e.data))
+			writeFile(path.Join(destination, "ent/input.go"), parseTemplate("ent/input_only", e.data))
 		}
 
 		if e.data.EntConfig.Query {
