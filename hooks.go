@@ -29,7 +29,6 @@ func (e *extension) generate(next gen.Generator) gen.Generator {
 		}
 
 		if e.data.EntConfig.Edges {
-
 			s := parseTemplate("ent/errors", e.data)
 			writeFile(path.Join(destination, "ent/errors.go"), s)
 		}

@@ -36,7 +36,13 @@ func init() {
 	gen.Funcs["order_fields"] = order_fields
 	gen.Funcs["select_fields"] = select_fields
 	gen.Funcs["dir"] = path.Dir
+	gen.Funcs["is_base"] = is_base
 
+}
+
+func is_base(f *load.Field) bool {
+	return f.Name == "id" || f.Name == "created_at" || f.Name == "updated_at" || f.Immutable ||
+		f.Name == "ID" || f.Name == "createdAt" || f.Name == "updatedAt" || f.Name == "CreatedAt" || f.Name == "UpdatedAt"
 }
 
 func tag(f *load.Field) string {

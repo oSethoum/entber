@@ -48,7 +48,7 @@ func WithFiber(config ...*FiberConfig) option {
 func WithEnt(config ...*EntConfig) option {
 	return func(e *extension) {
 		if len(config) == 0 {
-			e.data.EntConfig = &EntConfig{Input: true, Query: true, Edges: true}
+			e.data.EntConfig = &EntConfig{Input: true, Query: true, Edges: true, Base: false}
 		} else {
 
 			e.data.EntConfig = config[0]

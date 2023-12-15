@@ -50,6 +50,7 @@ type EntConfig struct {
 	Edges bool
 	Query bool
 	Error bool
+	Base  bool
 }
 
 type FiberConfig struct {
