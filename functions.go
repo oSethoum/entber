@@ -47,7 +47,7 @@ func is_base(f *load.Field) bool {
 
 func tag(f *load.Field) string {
 	if f.Tag == "" {
-		name := camel(f.Name)
+		name := f.Name
 		if strings.HasSuffix(name, "ID") {
 			name = strings.TrimSuffix(name, "ID")
 			name += "Id"
@@ -77,6 +77,7 @@ func imports(g *gen.Graph, isInput ...bool) []string {
 			}
 		}
 	}
+
 	return imps
 }
 
